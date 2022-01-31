@@ -264,8 +264,8 @@ output_joint = Dense(units=nb_out, activation='sigmoid', name='output_joint')(co
 split_model = Model(inputs=input_, outputs=output_joint, name='split_model')
 split_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-split_model.summary()
-plot_model(split_model, "graphs/split_model.png", show_shapes=True)
+#split_model.summary()
+# plot_model(split_model, "graphs/split_model.png", show_shapes=True)
 
 
 # fit the network
@@ -282,20 +282,20 @@ model.fit(seq_array, # Training features
                                                       verbose=0,
                                                       mode='auto')])
 
-print()
-print()
-print("~~~~~~~~~ TRAINING FUNCTIONAL MODEL ~~~~~~~ ")
-functional_model.fit(seq_array, # Training features
-           label_array, # Training labels
-           epochs=10,   # We'll stop after 10 epochs
-           batch_size=200, #
-           validation_split=0.10, # Use 10% of data to evaluate the loss. (val_loss)
-           verbose=1, #
-           callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss', # Monitor the validation loss
-                                                      min_delta=0,    # until it doesn't change (or gets worse)
-                                                      patience=5,  # patience > 1 so it continutes if it is not consistently improving
-                                                      verbose=0,
-                                                      mode='auto')])#
+#print()
+#print()
+#print("~~~~~~~~~ TRAINING FUNCTIONAL MODEL ~~~~~~~ ")
+#functional_model.fit(seq_array, # Training features
+#           label_array, # Training labels
+#           epochs=10,   # We'll stop after 10 epochs
+#           batch_size=200, #
+#           validation_split=0.10, # Use 10% of data to evaluate the loss. (val_loss)
+#           verbose=1, #
+#           callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss', # Monitor the validation loss
+#                                                      min_delta=0,    # until it doesn't change (or gets worse)
+#                                                      patience=5,  # patience > 1 so it continutes if it is not consistently improving
+#                                                      verbose=0,
+#                                                      mode='auto')])#
 
 print()
 print()

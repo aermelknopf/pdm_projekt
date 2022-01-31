@@ -1,26 +1,20 @@
 import torch
 import torch.nn as nn
-
-from torch.utils.data import TensorDataset
-from torch.utils.data import DataLoader
+from torch.nn import Linear
 
 import torch_custom_lstm as custom
 
-class SlicedModel(nn.Module):
-    def __init__(self):
+class SliceModel(nn.Module):
+    def __init__(self, nb_out):
         super().__init__()
-
-        self.slicedLSTM1 = custom.SliceLSTM()
-        self.slicedLSTM2 = custm
-        self.linear_relu_stack = nn.Sequential(
-            nn.Linear(28 * 28, 512),
-            nn.ReLU(),
-            nn.Linear(512, 512),
-            nn.ReLU(),
-            nn.Linear(512, 10)
-        )
+        self.sliceLSTM1 = custom.SliceLSTM([(25, 4), (25, 4)], return_sequence=True)
+        self.sliceLSTM2 = custom.SliceLSTM([(4, 2), (4, 2)], return_sequence=False)
+        self.out = Linear(4, nb_out)
+        self.out_activation = torch.nn.Sigmoid()
 
     def forward(self, x):
-        x = self.flatten(x)
-        logits = self.linear_relu_stack(x)
-        return logits
+        x, _ = self.sliceLSTM1(x)
+        x, _ = self.sliceLSTM2(x)
+        x = self.out(x)
+        x = self.out_activation(x)
+        return x
