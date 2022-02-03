@@ -4,6 +4,7 @@
 
 # import the libraries
 import os
+import time
 import pandas as pd
 import numpy as np
 import keras
@@ -14,14 +15,19 @@ from tensorflow.keras.utils import plot_model
 from sklearn.preprocessing import MinMaxScaler
 
 
-import h5py
+#  ~~~~ CLASS & FUNCTION AREA ~~~~
+# class to track iteration time
+class TimeHistory(keras.callbacks.Callback):
+    def on_train_begin(self, logs={}):
+        self.times = []
 
-import matplotlib.pyplot as plt
-import glob
-import urllib
+    def on_epoch_begin(self, epoch, logs={}):
+        self.epoch_time_start = time.time()
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.times.append(time.time() - self.epoch_time_start)
 
 
-#  ~~~~ FUNCTION AREA ~~~~
 # function to reshape features into (samples, time steps, features)
 def gen_sequence(id_df, seq_length, seq_cols):
     """ Only sequences that meet the window-length are considered, no padding is used. This means for testing
@@ -83,6 +89,21 @@ def read_input_files():
 
     return (train_dfs, test_dfs, truth_dfs)
 
+
+def write_epoch_log(epoch_times, training_history, filepath, initial_string="epoch time loss acc val_loss val_acc\n"):
+    output_lines = [initial_string]
+    epochs = training_history.epoch
+    losses = training_history.history['loss']
+    accs = training_history.history['accuracy']
+    val_losses = training_history.history['val_loss']
+    val_accs = training_history.history['val_accuracy']
+
+    for (epoch, time, loss, acc, val_loss, val_acc) in zip(epochs, epoch_times, losses, accs, val_losses, val_accs):
+        out_line = f"{epoch} {time} {loss} {acc} {val_loss} {val_acc}\n"
+        output_lines.append(out_line)
+
+    with open(filepath, "w") as file:
+        file.writelines(output_lines)
 
 # ~~~~ SCRIPT AREA ~~~~
 # STEP -1: AGGREGATE AND READ DATA
@@ -269,45 +290,55 @@ split_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accu
 
 
 # fit the network
-print("~~~~~~~~~ TRAINING SEQUENTIAL MODEL ~~~~~~~ ")
-model.fit(seq_array, # Training features
-           label_array, # Training labels
-           epochs=10,   # We'll stop after 10 epochs
-           batch_size=200, #
-           validation_split=0.10, # Use 10% of data to evaluate the loss. (val_loss)
-           verbose=1, #
-           callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss', # Monitor the validation loss
-                                                      min_delta=0,    # until it doesn't change (or gets worse)
-                                                      patience=5,  # patience > 1 so it continutes if it is not consistently improving
-                                                      verbose=0,
-                                                      mode='auto')])
-
-#print()
-#print()
-#print("~~~~~~~~~ TRAINING FUNCTIONAL MODEL ~~~~~~~ ")
-#functional_model.fit(seq_array, # Training features
-#           label_array, # Training labels
-#           epochs=10,   # We'll stop after 10 epochs
-#           batch_size=200, #
-#           validation_split=0.10, # Use 10% of data to evaluate the loss. (val_loss)
-#           verbose=1, #
-#           callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss', # Monitor the validation loss
-#                                                      min_delta=0,    # until it doesn't change (or gets worse)
-#                                                      patience=5,  # patience > 1 so it continutes if it is not consistently improving
-#                                                      verbose=0,
-#                                                      mode='auto')])#
+# print("~~~~~~~~~ TRAINING SEQUENTIAL MODEL ~~~~~~~ ")
+# print(model.count_params())
+# model.fit(seq_array, # Training features
+#            label_array, # Training labels
+#            epochs=10,   # We'll stop after 10 epochs
+#            batch_size=200, #
+#            validation_split=0.10, # Use 10% of data to evaluate the loss. (val_loss)
+#            verbose=2, #
+#            callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss', # Monitor the validation loss
+#                                                       min_delta=0,    # until it doesn't change (or gets worse)
+#                                                       patience=5,  # patience > 1 so it continutes if it is not consistently improving
+#                                                       verbose=0,
+#                                                       mode='auto')])
 
 print()
 print()
-print("~~~~~~~~~ TRAINING SPLIT MODEL ~~~~~~~ ")
-functional_model.fit(seq_array, # Training features
-           label_array, # Training labels
-           epochs=10,   # We'll stop after 10 epochs
-           batch_size=200, #
-           validation_split=0.10, # Use 10% of data to evaluate the loss. (val_loss)
-           verbose=1, #
-           callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss', # Monitor the validation loss
-                                                      min_delta=0,    # until it doesn't change (or gets worse)
-                                                      patience=5,  # patience > 1 so it continutes if it is not consistently improving
-                                                      verbose=0,
-                                                      mode='auto')])#
+print("~~~~~~~~~ TRAINING FUNCTIONAL MODEL ~~~~~~~ ")
+print(functional_model.count_params())
+functional_timer = TimeHistory()
+functional_history = functional_model.fit(seq_array,    # Training features
+          label_array,    # Training labels
+          epochs=50,   # We'll stop after 10 epochs
+          batch_size=200,
+          validation_split=0.10,    # Use 10% of data to evaluate the loss. (val_loss)
+          verbose=2,
+          callbacks = [functional_timer])
+          # callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss',    # Monitor the validation loss
+          #                                            min_delta=0,    # until it doesn't change (or gets worse)
+          #                                            patience=5,    # patience > 1 to continue despite short drops
+          #                                            verbose=0,
+          #                                            mode='auto')])
+
+write_epoch_log(functional_timer.times, functional_history, "results/functional_model3.txt")
+# print()
+# print()
+# print()
+# print("~~~~~~~~~ TRAINING SPLIT MODEL ~~~~~~~ ")
+# print(split_model.count_params())
+# split_timer = TimeHistory()
+# split_history = split_model.fit(seq_array,    # Training features
+#            label_array,    # Training labels
+#            epochs=50,    # We'll stop after 10 epochs
+#            batch_size=200,
+#            validation_split=0.10,    # Use 10% of data to evaluate the loss. (val_loss)
+#            verbose=2,
+#            callbacks = [split_timer])
+# #            callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss',    # Monitor the validation loss
+# #                                                       min_delta=0,    # until it doesn't change (or gets worse)
+# #                                                       patience=5,    # patience > 1 to continue despite short drops
+# #                                                       verbose=0,
+# #                                                       mode='auto')])
+# write_epoch_log(split_timer.times, split_history, "results/split_model3.txt")
