@@ -268,13 +268,13 @@ functional_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=[
 # Split LSTM Model with keras functional api
 input_ = Input(shape=(sequence_length, nb_features), name='input')
 # left half
-input_l = Lambda(lambda x: x[:, :25, :], name='split_l')(input_)
+input_l = Lambda(lambda x: x[:, :, :13], name='split_l')(input_)
 lstm_l1 = LSTM(units=4, return_sequences=True, name='lstm_l1')(input_l)
 dropout_l1 = Dropout(0.2, name='dropout_l1')(lstm_l1)
 lstm_l2 = LSTM(units=2, name='lstm_l2')(dropout_l1)
 dropout_l2 = Dropout(0.2, name='dropout_l2')(lstm_l2)
 # right half
-input_r = Lambda(lambda x: x[:, 25:, :], name='split_r')(input_)
+input_r = Lambda(lambda x: x[:, :, 13:], name='split_r')(input_)
 lstm_r1 = LSTM(units=4, return_sequences=True, name='lstm_r1')(input_r)
 dropout_r1 = Dropout(0.2, name='dropout_r1')(lstm_r1)
 lstm_r2 = LSTM(units=2, return_sequences=False, name='lstm_r2')(dropout_r1)
@@ -286,7 +286,7 @@ split_model = Model(inputs=input_, outputs=output_joint, name='split_model')
 split_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 #split_model.summary()
-# plot_model(split_model, "graphs/split_model.png", show_shapes=True)
+plot_model(split_model, "graphs/split_model_right.png", show_shapes=True)
 
 
 # fit the network
@@ -304,25 +304,25 @@ split_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accu
 #                                                       verbose=0,
 #                                                       mode='auto')])
 
-print()
-print()
-print("~~~~~~~~~ TRAINING FUNCTIONAL MODEL ~~~~~~~ ")
-print(functional_model.count_params())
-functional_timer = TimeHistory()
-functional_history = functional_model.fit(seq_array,    # Training features
-          label_array,    # Training labels
-          epochs=50,   # We'll stop after 10 epochs
-          batch_size=200,
-          validation_split=0.10,    # Use 10% of data to evaluate the loss. (val_loss)
-          verbose=2,
-          callbacks = [functional_timer])
-          # callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss',    # Monitor the validation loss
-          #                                            min_delta=0,    # until it doesn't change (or gets worse)
-          #                                            patience=5,    # patience > 1 to continue despite short drops
-          #                                            verbose=0,
-          #                                            mode='auto')])
-
-write_epoch_log(functional_timer.times, functional_history, "results/functional_model3.txt")
+# print()
+# print()
+# print("~~~~~~~~~ TRAINING FUNCTIONAL MODEL ~~~~~~~ ")
+# print(functional_model.count_params())
+# functional_timer = TimeHistory()
+# functional_history = functional_model.fit(seq_array,    # Training features
+#           label_array,    # Training labels
+#           epochs=50,   # We'll stop after 10 epochs
+#           batch_size=200,
+#           validation_split=0.10,    # Use 10% of data to evaluate the loss. (val_loss)
+#           verbose=2,
+#           callbacks = [functional_timer])
+#           # callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss',    # Monitor the validation loss
+#           #                                            min_delta=0,    # until it doesn't change (or gets worse)
+#           #                                            patience=5,    # patience > 1 to continue despite short drops
+#           #                                            verbose=0,
+#           #                                            mode='auto')])
+#
+# write_epoch_log(functional_timer.times, functional_history, "results/functional_model3.txt")
 # print()
 # print()
 # print()
@@ -334,11 +334,11 @@ write_epoch_log(functional_timer.times, functional_history, "results/functional_
 #            epochs=50,    # We'll stop after 10 epochs
 #            batch_size=200,
 #            validation_split=0.10,    # Use 10% of data to evaluate the loss. (val_loss)
-#            verbose=2,
+#            verbose=0,
 #            callbacks = [split_timer])
 # #            callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss',    # Monitor the validation loss
 # #                                                       min_delta=0,    # until it doesn't change (or gets worse)
 # #                                                       patience=5,    # patience > 1 to continue despite short drops
 # #                                                       verbose=0,
 # #                                                       mode='auto')])
-# write_epoch_log(split_timer.times, split_history, "results/split_model3.txt")
+# write_epoch_log(split_timer.times, split_history, "results/split_model6.txt")
