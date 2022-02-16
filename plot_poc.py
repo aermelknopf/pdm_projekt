@@ -15,13 +15,16 @@ def read_files(dir, round_decimals=None):
     return dfs
 
 
-def line_plot(df_dict, column, xlabel=None, ylabel=None, title=None, legend=False, show=False, savepath=None):
+def line_plot(df_dict, column, value_factor=1, xlabel=None, ylabel=None, title=None, legend=False, show=False, savepath=None):
     plot_data = []
 
     for label, df in df_dict.items():
-        print(label)
         xs = df['epoch'].values
-        ys = df[column].values
+        ys = df[column].values * value_factor
+
+        if type(legend) is dict:
+            label = legend[label]
+
         plot_data.append((label, xs, ys))
 
     for (label, xs, ys) in plot_data:
@@ -39,11 +42,14 @@ def line_plot(df_dict, column, xlabel=None, ylabel=None, title=None, legend=Fals
     if legend:
         plt.legend()
 
+    # needs to happen before plt.show() else only white image will be plotted
+    if savepath is not None:
+        plt.savefig(savepath)
+
     if show:
         plt.show()
 
-    if savepath is not None:
-        plt.savefig(savepath)
+
 
 
 if __name__ == "__main__":
@@ -53,7 +59,16 @@ if __name__ == "__main__":
     # dfs["functional_model.txt"]["val_acc"].plot()
     # plt.show()
 
-    line_plot(dfs, column="val_acc", xlabel="Epoch", ylabel="Validation Accuracy",
-              legend=True,
-              title="Comparison of Keras functional LSTM model and split LSTM model",
-              show=True, savepath="graphs/poc_val_acc")
+    legend = {"functional_model.txt": "normal LSTM (run 1)", "functional_model2.txt": "normal LSTM (run 2)",
+              "functional_model3.txt": "normal LSTM (run 3)", "split_model.txt": "split LSTM (run 1)",
+              "split_model2.txt": "split LSTM (run 2)", "split_model3.txt": "split LSTM (run 3)"}
+
+    line_plot(dfs, column="time", xlabel="training epoch", ylabel="epoch training time [s]",
+              legend=legend,
+              title="Training Epoch Time of Normal and Split LSTM model",
+              show=True, savepath="graphs/poc_training_time")
+
+    line_plot(dfs, column="val_acc", value_factor=100, xlabel="training epoch", ylabel="validation accuracy [%]",
+              legend=legend,
+              title="Validation Accuracy of Normal and Split LSTM model",
+              show=True, savepath="graphs/poc_val_acc_polished")
