@@ -78,6 +78,8 @@ def read_input_files():
 # function to train the model
 # inspired by: https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html
 def train(model, train_set, loss_fn, optimizer, batch_size=32, train_workers=2, val_workers=2, n_epochs=100, val_set=None, device='cpu'):
+    # history dict for logging
+    history = {'epoch': [], 'time': [], 'loss': [], 'accuracy': [], 'val_loss': [], 'val_accuracy': []}
 
     train_loader = DataLoader(train_set, batch_size=batch_size, num_workers=train_workers)
     if val_set is not None:
@@ -87,10 +89,10 @@ def train(model, train_set, loss_fn, optimizer, batch_size=32, train_workers=2, 
 
     size = len(train_loader.dataset)
 
+    model.train()
     for i in range(n_epochs):
-        model.train()
-        print(f"[Epoch {i}]")
         timer = 0
+        correct = 0.0
         epoch_start_time = time.time()
 
         for batch, (X, y) in enumerate(train_loader):
@@ -108,43 +110,86 @@ def train(model, train_set, loss_fn, optimizer, batch_size=32, train_workers=2, 
             loss.backward()
             optimizer.step()
 
-            stop_time = time.time()
-            elapsed_time = stop_time - start_time
-            timer += elapsed_time
+            # calculate accuracy
+            pred_classes = ((pred >= 0.5) == y)
+            correct += pred_classes.sum().item()
 
-            if batch > 0 and batch % 100 == 0:
-                loss, current = loss.item(), batch * len(X)
-                print(f"loss: {loss:>7f}  [{current:>6d}/{size:>6d}]  time: {timer:.3f}s")
-                timer = 0
+            # measure time for epoch 'step' to print
+            # stop_time = time.time()
+            # elapsed_time = stop_time - start_time
+            # timer += elapsed_time
+
+            # print info multiple times per epoch
+            # if batch > 0 and batch % 100 == 0:
+            #     loss, current = loss.item(), batch * len(X)
+            #     print(f"loss: {loss:>7f}  [{current:>6d}/{size:>6d}]  time: {timer:.3f}s")
+            #     timer = 0
 
         epoch_end_time = time.time()
         epoch_duration = epoch_end_time - epoch_start_time
         loss = loss.item()
-        print(f"loss: {loss:>7f}  [{size:>6d}/{size:>6d}]  time: {timer:.3f}s")
-        print(f"total epoch time: {epoch_duration:.3f}s")
+        accuracy = correct / size
+        print(f"[Epoch {i}]     [{size:>6d}/{size:>6d}]")
+        print(f"time: {epoch_duration:.3f}s  loss: {loss:>7f}  acc: {(100 * accuracy):>0.2f}%")
+
+        history['epoch'].append(i)
+        history['time'].append(round(epoch_duration, 4))
+        history['loss'].append(round(loss, 6))
+        history['accuracy'].append(round(accuracy, 6))
 
         if val_loader is not None:
-            validate(model, val_loader, loss_fn)
+            validate(model, val_loader, loss_fn, history=history)
+
+    return history
 
 
 # function for validation
-def validate(model, dataloader, loss_fn, device='cpu'):
+def validate(model, dataloader, loss_fn, print_metrics=True, history=None, device='cpu'):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
+
     model.eval()
-    test_loss, correct = 0, 0
+    test_loss, correct = 0.0, 0.0
     with torch.no_grad():
         for X, y in dataloader:
             '''pass device variable and uncomment for gpu training'''
             # X, y = X.to(device), y.to(device)
             pred = model(X)
             test_loss += loss_fn(pred, y).item()
-            # correct accuracy calculation for mulitnomial classification ?!
-            correct += (pred.argmax(1) == y).type(torch.float).sum().item() / X.shape[0]
-            # print(f"batch size: {X.shape[0]}, correct: {correct}")
+            # ACCURACY FORMULA WORKS ONLY FOR BINARY CLASSIFICATION
+            # increase = (pred.argmax(1) == y).type(torch.float).sum().item() / X.shape[0]   <- ORIGINAL
+            pred_classes = ((pred >= 0.5) == y)
+            correct += pred_classes.sum().item()
+
     test_loss /= num_batches
-    correct /= size
-    print(f"Validation: \n Accuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    accuracy = correct / size
+    if print_metrics:
+        print(f"Validation:    loss: {test_loss:>7f}  acc: {(100 * accuracy):>0.2f}%\n")
+
+    if history is not None:
+        if 'val_loss' in history.keys():
+            history['val_loss'].append(round(test_loss, 6))
+
+        if 'val_accuracy' in history.keys():
+            history['val_accuracy'].append(round(accuracy, 6))
+
+
+# write epoch_log analog to proof of concept function
+def write_epoch_log(data_history, filepath, initial_string="epoch time loss acc val_loss val_acc\n"):
+    output_lines = [initial_string]
+    epochs = data_history['epoch']
+    epoch_times = data_history['time']
+    losses = data_history['loss']
+    accs = data_history['accuracy']
+    val_losses = data_history['val_loss']
+    val_accs = data_history['val_accuracy']
+
+    for (epoch, time, loss, acc, val_loss, val_acc) in zip(epochs, epoch_times, losses, accs, val_losses, val_accs):
+        out_line = f"{epoch} {time:.4f} {loss:.6f} {acc:.6f} {val_loss:.6f} {val_acc:.6f}\n"
+        output_lines.append(out_line)
+
+    with open(filepath, "w") as file:
+        file.writelines(output_lines)
 
 
 ''' ~~~~~~~~~~~~~~~~~~~~~
@@ -208,7 +253,7 @@ if __name__ == '__main__':
     # STEP 3: DATA NORMALIZATION (values between [0.0,1.0])
     # MinMax normalization - train data
     train_df['cycle_norm'] = train_df['cycle']
-    cols_normalize = train_df.columns.difference(['id','cycle','RUL','label1','label2'])
+    cols_normalize = train_df.columns.difference(['id', 'cycle', 'RUL', 'label1', 'label2'])
     min_max_scaler = MinMaxScaler()
     norm_train_df = pd.DataFrame(min_max_scaler.fit_transform(train_df[cols_normalize]),
                                  columns=cols_normalize,
@@ -296,11 +341,13 @@ if __name__ == '__main__':
     nb_out = label_array.shape[1]
 
     # model = custom.SliceLSTM([(25, 1)], return_sequence=False)
-    # model = current_model.SliceModel(nb_out)
-    model = current_model.ReferenceModel(1, 25, 10)
+    model = current_model.SliceModel(nb_out)
+    # model = current_model.ReferenceModel(1, 25, 10)
 
 
     # STEP 7: Training using training function and defined parameters
-    train(model=model, train_set=train_set, batch_size=100, train_workers=4,
-          loss_fn=nn.BCELoss(), optimizer=torch.optim.Adam(model.parameters()),
-          val_set=val_set, val_workers=2, n_epochs=50)
+    history = train(model=model, train_set=train_set, batch_size=1000, train_workers=4,
+                    loss_fn=nn.BCELoss(), optimizer=torch.optim.Adam(model.parameters()),
+                    val_set=val_set, val_workers=2, n_epochs=50)
+
+    write_epoch_log(history, filepath="results/sliced_model1.txt")
