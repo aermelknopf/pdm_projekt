@@ -74,17 +74,26 @@ def read_input_files():
 
     return train_dfs, test_dfs, truth_dfs
 
+
 # function to train the model
 # inspired by: https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html
-def train(model, dataloader, loss_fn, optimizer, n_epochs=100, batch_size=32, val_dataloader=None, device='cpu'):
-    size = len(dataloader.dataset)
+def train(model, train_set, loss_fn, optimizer, batch_size=32, train_workers=2, val_workers=2, n_epochs=100, val_set=None, device='cpu'):
+
+    train_loader = DataLoader(train_set, batch_size=batch_size, num_workers=train_workers)
+    if val_set is not None:
+        val_loader = DataLoader(val_set, batch_size=batch_size, num_workers=val_workers)
+    else:
+        val_loader = None
+
+    size = len(train_loader.dataset)
 
     for i in range(n_epochs):
         model.train()
-        print(f"Epoch {i}")
+        print(f"[Epoch {i}]")
         timer = 0
+        epoch_start_time = time.time()
 
-        for batch, (X, y) in enumerate(dataloader):
+        for batch, (X, y) in enumerate(train_loader):
             '''pass device variable to cuda and uncomment for gpu training
                 change to tensors instead of numpy data first'''
             # X, y = X.to(device), y.to(device)
@@ -103,16 +112,19 @@ def train(model, dataloader, loss_fn, optimizer, n_epochs=100, batch_size=32, va
             elapsed_time = stop_time - start_time
             timer += elapsed_time
 
-            if batch % 100 == 0:
+            if batch > 0 and batch % 100 == 0:
                 loss, current = loss.item(), batch * len(X)
-                print(f"loss: {loss:>7f}  [{current:>6d}/{size:>6d}]  total: {timer:.3f}s")
+                print(f"loss: {loss:>7f}  [{current:>6d}/{size:>6d}]  time: {timer:.3f}s")
                 timer = 0
 
-        print(f"loss: {loss:>7f}  [{current:>6d}/{size:>6d}]  total: {timer:.3f}s")
+        epoch_end_time = time.time()
+        epoch_duration = epoch_end_time - epoch_start_time
+        loss = loss.item()
+        print(f"loss: {loss:>7f}  [{size:>6d}/{size:>6d}]  time: {timer:.3f}s")
+        print(f"total epoch time: {epoch_duration:.3f}s")
 
-
-        if val_dataloader is not None:
-            validate(model, val_dataloader, loss_fn)
+        if val_loader is not None:
+            validate(model, val_loader, loss_fn)
 
 
 # function for validation
@@ -132,7 +144,7 @@ def validate(model, dataloader, loss_fn, device='cpu'):
             # print(f"batch size: {X.shape[0]}, correct: {correct}")
     test_loss /= num_batches
     correct /= size
-    print(f"Test Error: \n Accuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    print(f"Validation: \n Accuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
 
 ''' ~~~~~~~~~~~~~~~~~~~~~
@@ -265,10 +277,10 @@ if __name__ == '__main__':
     label_array = np.concatenate(label_gen).astype(np.float32)
 
 
-    # STEP 5: Datasets, Dataloaders, Train - Validation Split (own from here)
+    # STEP 5: Datasets, Train - Validation Split (own from here) Data Loaders in train() so batch size is controlled
     val_data_portion = 0.1
 
-    # create torch datasets and dataloaders for training and validation
+    # create torch datasets for training and validation
     seq_tensors = torch.Tensor(seq_array)
     label_tensors = torch.Tensor(label_array)
     dataset = TensorDataset(seq_tensors, label_tensors)
@@ -277,10 +289,6 @@ if __name__ == '__main__':
     train_size = len(dataset) - val_size
     train_set, val_set = torch.utils.data.dataset.random_split(dataset, [train_size, val_size])
 
-    train_loader = DataLoader(train_set, batch_size=200, num_workers=2)
-    val_loader = DataLoader(val_set, batch_size=10, num_workers=2)
-
-
     # STEP 6: Model Definition
     # input dimension: (sequence_length, nb_features)
     # output dimension: nb_out
@@ -288,9 +296,11 @@ if __name__ == '__main__':
     nb_out = label_array.shape[1]
 
     # model = custom.SliceLSTM([(25, 1)], return_sequence=False)
-    model = current_model.SliceModel(nb_out)
+    # model = current_model.SliceModel(nb_out)
+    model = current_model.ReferenceModel(1, 25, 10)
+
 
     # STEP 7: Training using training function and defined parameters
-    train(model=model, dataloader=train_loader,
+    train(model=model, train_set=train_set, batch_size=100, train_workers=4,
           loss_fn=nn.BCELoss(), optimizer=torch.optim.Adam(model.parameters()),
-          val_dataloader=val_loader, n_epochs=10)
+          val_set=val_set, val_workers=2, n_epochs=50)
