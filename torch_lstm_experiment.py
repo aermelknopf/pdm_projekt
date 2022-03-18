@@ -340,14 +340,13 @@ if __name__ == '__main__':
     nb_features = seq_array.shape[2]
     nb_out = label_array.shape[1]
 
-    # model = custom.SliceLSTM([(25, 1)], return_sequence=False)
     model = current_model.SliceModel(nb_out)
-    # model = current_model.ReferenceModel(1, 25, 10)
+    # model = current_model.LibraryModel(1, 25, 10)
 
 
     # STEP 7: Training using training function and defined parameters
     history = train(model=model, train_set=train_set, batch_size=1000, train_workers=4,
-                    loss_fn=nn.BCELoss(), optimizer=torch.optim.Adam(model.parameters()),
+                    loss_fn=nn.BCELoss(), optimizer=torch.optim.Adam(model.parameters(), lr=0.005),
                     val_set=val_set, val_workers=2, n_epochs=50)
 
-    write_epoch_log(history, filepath="results/sliced_model1.txt")
+    write_epoch_log(history, filepath="results/sliced_model-8-4one-lr005-dropout2.txt")

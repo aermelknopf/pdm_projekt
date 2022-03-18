@@ -30,6 +30,15 @@ class SliceLSTM(nn.Module):
 
     def forward(self, x,
                 init_states=None):
+
+        # Do some input dimension sanity checks:
+        batch_size, sequence_length, feature_size = x.size()
+        # print(f"input shape: {x.size()}")
+        # print(f"batch size: {batch_size}, sequence_length: {sequence_length}, feature size: {feature_size}")
+        total_input_size = sum(self.input_slices)
+        assert(feature_size == total_input_size)
+
+
         """Assumes x is of shape (batch, sequence, feature)"""
         bs, seq_sz, _ = x.size()
         hidden_seq = []
