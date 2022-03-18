@@ -345,8 +345,19 @@ if __name__ == '__main__':
 
 
     # STEP 7: Training using training function and defined parameters
-    history = train(model=model, train_set=train_set, batch_size=1000, train_workers=4,
-                    loss_fn=nn.BCELoss(), optimizer=torch.optim.Adam(model.parameters(), lr=0.005),
-                    val_set=val_set, val_workers=2, n_epochs=50)
+    # we try each configuration 5 times:
 
-    write_epoch_log(history, filepath="results/sliced_model-8-4one-lr005-dropout2.txt")
+    learning_rates = [0.001, 0.005, 0.01, 0.02]
+    num_tries = 5
+
+    for learning_rate in learning_rates:
+        for i in range(num_tries):
+            history = train(model=model, train_set=train_set, batch_size=1000, train_workers=4,
+                            loss_fn=nn.BCELoss(), optimizer=torch.optim.Adam(model.parameters(), lr=learning_rate),
+                            val_set=val_set, val_workers=2, n_epochs=50)
+
+            # manually configure dir to reflect model architecture
+            logdir = "results/sliced-model" + "(8-3_9-4_8-3)"
+            logpath = logdir + "/" + f"lr{str(learning_rate)[2:]}-dropout-{i}"
+
+            write_epoch_log(history, filepath=logpath)

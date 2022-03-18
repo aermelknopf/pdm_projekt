@@ -1,0 +1,12 @@
+Failed architectures for sliced model: (slices as list)
+Layer represented as list of slice tuples (input_size, hidden_size)
+
+
+
+sliced_model-10units-dropout.txt        # [(12, 5), (13, 5)] - [(4, 2), (4,2)] - 0.2 dropout ?
+sliced_model-3units-dropout.txt         # [(12, 3), (13, 3)] - [(4, 2), (4,2)] - 0.2 dropout ?
+sliced_model-test-halves-dropout.txt    # basic layout + 2x 0.2 dropout layer?
+sliced_model-test.txt                   # basic layout? = [(12, 4), (13, 4)], [(4,2), (4,2)]
+sliced_model-test2.txt                  # basic layout?
+sliced_model1.txt                       # basic layout?
+sliced_model-8one-4one-dropout.txt      # [(15, 8)] [(8, 4)] "simulation of a non-sliced model" - 0.2 dropout

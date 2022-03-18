@@ -6,9 +6,9 @@ def read_files(dir, selected=None, round_decimals=None):
     dfs = {}
 
     for filename in os.listdir(dir):
+        if os.path.isfile(os.path.join(dir, filename)):    # filter subdirectories
 
-        if selected is not None:
-            if filename in selected:
+            if selected is None or filename in selected:
                 df = pandas.read_csv(f"{dir}/{filename}", sep=" ")
                 if round_decimals is not None:
                     df = df.round(decimals=round_decimals)
@@ -25,9 +25,12 @@ def line_plot(df_dict, column, value_factor=1, xlabel=None, ylabel=None, title=N
         xs = df['epoch'].values
         ys = df[column].values * value_factor
 
-        if type(legend) is dict:
-            if label in legend:
-                label = legend[label]
+        if legend is not None:
+            if type(legend) is dict:
+                if label in legend:
+                    label = legend[label]
+            elif callable(legend):
+                label = legend(label)
 
         plot_data.append((label, xs, ys))
 
@@ -54,10 +57,8 @@ def line_plot(df_dict, column, value_factor=1, xlabel=None, ylabel=None, title=N
         plt.show()
 
 
-
-
-if __name__ == "__main__":
-    result_dir = "results"
+def plot_poc():
+    result_dir = "results/proof of concept"
 
     selected = ["functional_model.txt", "functional_model2.txt", "functional_model3.txt",
                 "split_model4.txt", "split_model5.txt", "split_model6.txt"]
@@ -81,3 +82,9 @@ if __name__ == "__main__":
               legend=legend,
               title="Validation Accuracy of Normal and Split LSTM model",
               show=True, savepath="graphs/poc_val_acc")
+
+
+
+if __name__ == '__main__':
+    dfs = read_files("results")
+    line_plot(dfs, column="val_acc", show=True, legend=True, xlabel="epoch", ylabel="validation accuracy")
