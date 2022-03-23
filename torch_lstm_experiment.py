@@ -79,7 +79,7 @@ def read_input_files():
 # inspired by: https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html
 def train(model, train_set, loss_fn, optimizer, batch_size=32, train_workers=2, val_workers=2, n_epochs=100, val_set=None, device='cpu'):
     # history dict for logging
-    history = {'epoch': [], 'time': [], 'loss': [], 'accuracy': [], 'val_loss': [], 'val_accuracy': []}
+    history = {'epoch': [], 'time': [], 'forward_time': [], 'backward_time': [], 'loss': [], 'accuracy': [], 'val_loss': [], 'val_accuracy': []}
 
     train_loader = DataLoader(train_set, batch_size=batch_size, num_workers=train_workers)
     if val_set is not None:
@@ -91,9 +91,10 @@ def train(model, train_set, loss_fn, optimizer, batch_size=32, train_workers=2, 
 
     model.train()
     for i in range(n_epochs):
-        timer = 0
         correct = 0.0
         epoch_start_time = time.time()
+        forward_duration = 0
+        backward_duration = 0
 
         for batch, (X, y) in enumerate(train_loader):
             '''pass device variable to cuda and uncomment for gpu training
@@ -102,13 +103,17 @@ def train(model, train_set, loss_fn, optimizer, batch_size=32, train_workers=2, 
 
             start_time = time.time()
             # compute prediction error
-            pred = model(X)              # LSTM output: hidden(seq?), (h_t, c_t)
+            fwd_start_time = time.time()
+            pred = model(X)              # assumes output shape to match label shape
+            forward_duration += time.time() - fwd_start_time
             loss = loss_fn(pred, y)
 
             # backpropagation
             optimizer.zero_grad()
+            backward_start = time.time()
             loss.backward()
             optimizer.step()
+            backward_duration += time.time() - backward_start
 
             # calculate accuracy
             pred_classes = ((pred >= 0.5) == y)
@@ -134,6 +139,8 @@ def train(model, train_set, loss_fn, optimizer, batch_size=32, train_workers=2, 
 
         history['epoch'].append(i)
         history['time'].append(round(epoch_duration, 4))
+        history['forward_time'].append(round(forward_duration, 4))
+        history['backward_time'].append(round(backward_duration, 4))
         history['loss'].append(round(loss, 6))
         history['accuracy'].append(round(accuracy, 6))
 
@@ -175,17 +182,19 @@ def validate(model, dataloader, loss_fn, print_metrics=True, history=None, devic
 
 
 # write epoch_log analog to proof of concept function
-def write_epoch_log(data_history, filepath, initial_string="epoch time loss acc val_loss val_acc\n"):
+def write_epoch_log(data_history, filepath, initial_string="epoch time fwd_time bwd_time loss acc val_loss val_acc\n"):
     output_lines = [initial_string]
     epochs = data_history['epoch']
     epoch_times = data_history['time']
+    epoch_forward_times = data_history['forward_time']
+    epoch_backward_times = data_history['backward_time']
     losses = data_history['loss']
     accs = data_history['accuracy']
     val_losses = data_history['val_loss']
     val_accs = data_history['val_accuracy']
 
-    for (epoch, time, loss, acc, val_loss, val_acc) in zip(epochs, epoch_times, losses, accs, val_losses, val_accs):
-        out_line = f"{epoch} {time:.4f} {loss:.6f} {acc:.6f} {val_loss:.6f} {val_acc:.6f}\n"
+    for (epoch, time, fwd_time, bwd_time, loss, acc, val_loss, val_acc) in zip(epochs, epoch_times, epoch_forward_times, epoch_backward_times, losses, accs, val_losses, val_accs):
+        out_line = f"{epoch} {time:.4f} {fwd_time:.4f} {bwd_time:.4f} {loss:.6f} {acc:.6f} {val_loss:.6f} {val_acc:.6f}\n"
         output_lines.append(out_line)
 
     with open(filepath, "w") as file:
@@ -340,9 +349,6 @@ if __name__ == '__main__':
     nb_features = seq_array.shape[2]
     nb_out = label_array.shape[1]
 
-    model = current_model.SliceModel(nb_out)
-    # model = current_model.LibraryModel(1, 25, 10)
-
 
     # STEP 7: Training using training function and defined parameters
     # we try each configuration 5 times:
@@ -350,14 +356,24 @@ if __name__ == '__main__':
     learning_rates = [0.001, 0.005, 0.01, 0.02]
     num_tries = 5
 
+    # manually configure dir to reflect model architecture
+    architecture_string = "(12-20_13-20)_drop20_(20-10_20-10)_drop20"
+    logdir = "results/sliced-model/" + architecture_string
+
     for learning_rate in learning_rates:
-        for i in range(num_tries):
+        for i in range(1, num_tries + 1):
+
+            # new model every iteration
+            model = current_model.SliceModel(nb_out)
+            print(model)
+            # model = current_model.LibraryModel(1, 25, 10)
+
+            print(f"~~~~~~~~~~~~ lr={learning_rate}    run: {i} ~~~~~~~~~~~~")
+
             history = train(model=model, train_set=train_set, batch_size=1000, train_workers=4,
                             loss_fn=nn.BCELoss(), optimizer=torch.optim.Adam(model.parameters(), lr=learning_rate),
-                            val_set=val_set, val_workers=2, n_epochs=50)
+                            val_set=val_set, val_workers=2, n_epochs=2)
 
-            # manually configure dir to reflect model architecture
-            logdir = "results/sliced-model" + "(8-3_9-4_8-3)"
-            logpath = logdir + "/" + f"lr{str(learning_rate)[2:]}-dropout-{i}"
+            logpath = logdir + "/" + f"lr{str(learning_rate)[2:]}-{i}"
 
             write_epoch_log(history, filepath=logpath)

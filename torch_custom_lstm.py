@@ -10,7 +10,7 @@ import torch.nn as nn
 
 """FINAL"""
 class SliceLSTM(nn.Module):
-    def __init__(self, lstm_slices, return_sequence=True):
+    def __init__(self, lstm_slices):
         super().__init__()
         self.input_slices = [x[0] for x in lstm_slices]
         self.hidden_slices = [x[1] for x in lstm_slices]
@@ -21,7 +21,6 @@ class SliceLSTM(nn.Module):
         self.connector_Ws = nn.Parameter(torch.Tensor(self.hidden_size, self.hidden_size * 4))
         self.connector_biases = nn.Parameter(torch.Tensor(self.hidden_size * 4))
         self.init_weights()
-        self.return_sequence = return_sequence
 
     def init_weights(self):
         stdv = 1.0 / math.sqrt(self.hidden_size)
@@ -102,7 +101,5 @@ class SliceLSTM(nn.Module):
         # reshape from shape (sequence, batch, feature) to (batch, sequence, feature)
         hidden_seq = hidden_seq.transpose(0, 1).contiguous()
 
-        if self.return_sequence:
-            return hidden_seq, (h_t, c_t)
-        else:
-            return hidden_seq[:, -1, :], (h_t, c_t)
+
+        return hidden_seq, (h_t, c_t)
