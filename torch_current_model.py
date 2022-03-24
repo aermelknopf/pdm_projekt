@@ -53,7 +53,7 @@ class ReferenceCustomModel(nn.Module):
         self.DropOut1 = nn.Dropout(p=0.2)
         self.LSTM2 = reference.CustomLSTM(6, 3)
         self.DropOut2 = nn.Dropout(p=0.2)
-        self.out = Linear(4, nb_out)
+        self.out = Linear(3, nb_out)
         self.out_activation = torch.nn.Sigmoid()
 
     def forward(self, x):
