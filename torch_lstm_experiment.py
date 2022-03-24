@@ -356,23 +356,23 @@ if __name__ == '__main__':
     learning_rates = [0.001, 0.005, 0.01, 0.02]
     num_tries = 5
 
-    # manually configure dir to reflect model architecture
-    architecture_string = "(12-20_13-20)_drop20_(20-10_20-10)_drop20"
-    logdir = "results/sliced-model/" + architecture_string
+    # manually configure dir to reflect model type and architecture
+    model_type = "reference-model"
+    architecture_string = "25-8_drop20_8-4_drop20"
+    logdir = f"results/{model_type}/{architecture_string}"
 
     for learning_rate in learning_rates:
         for i in range(1, num_tries + 1):
 
             # new model every iteration
-            model = current_model.SliceModel(nb_out)
-            print(model)
-            # model = current_model.LibraryModel(1, 25, 10)
+            # model = current_model.SliceModel(nb_out)
+            model = current_model.ReferenceCustomModel(1)
 
             print(f"~~~~~~~~~~~~ lr={learning_rate}    run: {i} ~~~~~~~~~~~~")
 
             history = train(model=model, train_set=train_set, batch_size=1000, train_workers=4,
                             loss_fn=nn.BCELoss(), optimizer=torch.optim.Adam(model.parameters(), lr=learning_rate),
-                            val_set=val_set, val_workers=2, n_epochs=2)
+                            val_set=val_set, val_workers=2, n_epochs=50)
 
             logpath = logdir + "/" + f"lr{str(learning_rate)[2:]}-{i}"
 

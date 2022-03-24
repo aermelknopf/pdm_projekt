@@ -84,6 +84,27 @@ def plot_poc():
               show=True, savepath="graphs/poc_val_acc")
 
 
+def get_title_string(model_string : str):
+    model_architecture = []
+    while model_string != '':
+        if model_string[0] == '(':
+            layer_end_index = model_string.find(")")
+            layer_string = model_string[1: layer_end_index]
+            model_string = model_string[layer_end_index + 1: ]
+
+            layer_string, model_string = parse_sliced_layer(model_string)
+        elif model_string[0] == 'd':
+            layer_string, model_string = parse_dropout_layer(model_string)
+
+        model_architecture.append(layer_string)
+
+def parse_sliced_layer(model_string : str):
+    # TODO: complete?
+    pass
+
+def parse_dropout_layer(model_string : str):
+    # TODO: complete?
+    pass
 
 if __name__ == '__main__':
     dfs = read_files("results")
