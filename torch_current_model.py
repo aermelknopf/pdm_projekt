@@ -49,11 +49,11 @@ class LibraryModel(nn.Module):
 class ReferenceCustomModel(nn.Module):
     def __init__(self, nb_out):
         super().__init__()
-        self.LSTM1 = reference.CustomLSTM(25, 6)
-        self.DropOut1 = nn.Dropout(p=0.2)
-        self.LSTM2 = reference.CustomLSTM(6, 3)
-        self.DropOut2 = nn.Dropout(p=0.2)
-        self.out = Linear(3, nb_out)
+        self.LSTM1 = reference.CustomLSTM(25, 5)
+        self.DropOut1 = nn.Dropout(p=0.1)
+        self.LSTM2 = reference.CustomLSTM(5, 2)
+        self.DropOut2 = nn.Dropout(p=0.1)
+        self.out = Linear(2, nb_out)
         self.out_activation = torch.nn.Sigmoid()
 
     def forward(self, x):
