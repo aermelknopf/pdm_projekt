@@ -49,23 +49,23 @@ class LibraryModel(nn.Module):
 class ReferenceCustomModel(nn.Module):
     def __init__(self, nb_out):
         super().__init__()
-        self.LSTM1 = reference.CustomLSTM(25, 8)
+        self.LSTM1 = reference.CustomLSTM(25, 6)
         self.DropOut1 = nn.Dropout(p=0.2)
-        self.LSTM2 = reference.CustomLSTM(8, 4)
+        self.LSTM2 = reference.CustomLSTM(6, 3)
         self.DropOut2 = nn.Dropout(p=0.2)
         self.out = Linear(4, nb_out)
         self.out_activation = torch.nn.Sigmoid()
 
     def forward(self, x):
-        print(f"input: {x.shape}")
+        # print(f"input: {x.shape}")
         x, _ = self.LSTM1(x)
-        x = self.DropOut1(p=0.2)
+        x = self.DropOut1(x)
         x, _ = self.LSTM2(x)
         x = x[:, -1, :]  # only take last output -> "return_sequence = False"
-        x = self.DropOut2(p=0.2)
-        print(f"lstm_output: {x.shape}")
+        x = self.DropOut2(x)
+        # print(f"lstm_output: {x.shape}")
         x = self.out(x)
-        print(f"linear output: {x.shape}")
+        # print(f"linear output: {x.shape}")
         x = self.out_activation(x)
-        print(f"output: {x.shape}")
+        # print(f"output: {x.shape}")
         return x

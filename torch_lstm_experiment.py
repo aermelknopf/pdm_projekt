@@ -358,7 +358,7 @@ if __name__ == '__main__':
 
     # manually configure dir to reflect model type and architecture
     model_type = "reference-model"
-    architecture_string = "25-8_drop20_8-4_drop20"
+    architecture_string = "25-6_drop20_6-3_drop20"
     logdir = f"results/{model_type}/{architecture_string}"
 
     for learning_rate in learning_rates:
