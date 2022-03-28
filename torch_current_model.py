@@ -12,7 +12,7 @@ class SliceModel(nn.Module):
         self.DropOut1 = nn.Dropout(p=0.2)
         #self.sliceLSTM2 = custom.SliceLSTM([(20, 10), (20, 10)])
         #self.DropOut2 = nn.Dropout(p=0.2)
-        self.out = Linear(11, nb_out)
+        self.out = Linear(10, nb_out)
         self.out_activation = torch.nn.Sigmoid()
 
     def forward(self, x):
