@@ -358,7 +358,7 @@ if __name__ == '__main__':
 
     # manually configure dir to reflect model type and architecture
     model_type = "sliced-model"
-    architecture_string = "(8-3_9-4_8-3)_drop20"
+    architecture_string = "(10-1_15-2)_drop15"
     logdir = f"results/{model_type}/{architecture_string}"
 
     for learning_rate in learning_rates:
