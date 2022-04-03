@@ -2,20 +2,36 @@ import matplotlib.pyplot as plt
 import os
 import pandas
 
-def read_files(dir, selected=None, round_decimals=None):
+def read_files(dir, selected=None, round_decimals=None, root_dir=None):
     dfs = {}
 
     for filename in os.listdir(dir):
         if os.path.isfile(os.path.join(dir, filename)):    # filter subdirectories
 
-            if selected is None or filename in selected:
-                df = pandas.read_csv(f"{dir}/{filename}", sep=" ")
+            if file_interesting(filename, selection=selected):
+                root_dir_string = "" if root_dir is None else f"{root_dir}/"
+
+                df = pandas.read_csv(f"{root_dir_string}{dir}/{filename}", sep=" ")
                 if round_decimals is not None:
                     df = df.round(decimals=round_decimals)
 
                 dfs[filename] = df
 
     return dfs
+
+
+def file_interesting(filename : str, selection=None):
+    interesting = False
+
+    if selection is None:
+        interesting = True
+    else:
+        if callable(selection):
+            interesting = selection(filename)
+        elif filename in selection:
+            interesting = True
+
+    return interesting
 
 
 def line_plot(df_dict, column, value_factor=1, xlabel=None, ylabel=None, title=None, legend=False, show=False, savepath=None):
@@ -98,14 +114,44 @@ def get_title_string(model_string : str):
 
         model_architecture.append(layer_string)
 
+
 def parse_sliced_layer(model_string : str):
     # TODO: complete?
     pass
+
 
 def parse_dropout_layer(model_string : str):
     # TODO: complete?
     pass
 
+
+def plot_lr_comparison(root_dir : str):
+    learning_rates = [0.001, 0.005, 0.01, 0.02]
+
+    for item in os.listdir(root_dir):                       # iterate over direct subdirectories (representing one model architecture)
+        cur_dir = os.path.join(root_dir, item)
+        if os.path.isdir(cur_dir):
+
+            for lr in learning_rates:                       # iterate over learning rates
+                lr_string = str(lr)
+                lr_string = lr_string.partition('.')[2]     # returns before, seperator, after
+                lr_string = f"lr{lr_string}"
+
+                filter = lambda s: lr_string in s
+
+
+                data = read_files(cur_dir, selected=filter)
+
+                if bool(data):
+                    title = f"{item}  lr={lr}"
+                    line_plot(data, column="val_acc", show=True, legend=True, title=title, xlabel="training epoch", ylabel="validation accuracy [%]", value_factor=100)
+
+
+
+
 if __name__ == '__main__':
-    dfs = read_files("results")
-    line_plot(dfs, column="val_acc", show=True, legend=True, xlabel="epoch", ylabel="validation accuracy")
+    # dfs = read_files("results")
+    # line_plot(dfs, column="val_acc", show=True, legend=True, xlabel="epoch", ylabel="validation accuracy")
+    # plot_lr_comparison("results/reference-model")
+
+    plot_lr_comparison("results/sliced-model")
