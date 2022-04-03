@@ -287,7 +287,7 @@ if __name__ == '__main__':
     split_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
     #split_model.summary()
-    plot_model(split_model, "graphs/split_model_right.png", show_shapes=True)
+    plot_model(split_model, "graphs/models/split_model_right.png", show_shapes=True)
 
 
     # fit the network
