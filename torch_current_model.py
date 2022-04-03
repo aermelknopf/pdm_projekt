@@ -8,19 +8,19 @@ import custom_lstm_example as reference
 class SliceModel(nn.Module):
     def __init__(self, nb_out):
         super().__init__()
-        self.sliceLSTM1 = custom.SliceLSTM([(12, 20), (13, 20)])
-        self.DropOut1 = nn.Dropout(p=0.2)
-        self.sliceLSTM2 = custom.SliceLSTM([(20, 10), (20, 10)])
-        self.DropOut2 = nn.Dropout(p=0.2)
-        self.out = Linear(20, nb_out)
+        self.sliceLSTM1 = custom.SliceLSTM([(10, 1), (15, 2)])
+        self.DropOut1 = nn.Dropout(p=0.15)
+        # self.sliceLSTM2 = custom.SliceLSTM([(20, 10), (20, 10)])
+        # self.DropOut2 = nn.Dropout(p=0.2)
+        self.out = Linear(3, nb_out)
         self.out_activation = torch.nn.Sigmoid()
 
     def forward(self, x):
         x, _ = self.sliceLSTM1(x)
-        x = self.DropOut1(x)
-        x, _ = self.sliceLSTM2(x)
+        # x = self.DropOut1(x)
+        # x, _ = self.sliceLSTM2(x)
         x = x[:, -1, :]  # only take last hidden state (equals "return_sequence = False")
-        x = self.DropOut2(x)
+        # x = self.DropOut2(x)
         x = self.out(x)
         x = self.out_activation(x)
         return x
@@ -49,11 +49,11 @@ class LibraryModel(nn.Module):
 class ReferenceCustomModel(nn.Module):
     def __init__(self, nb_out):
         super().__init__()
-        self.LSTM1 = reference.CustomLSTM(25, 6)
-        self.DropOut1 = nn.Dropout(p=0.2)
-        self.LSTM2 = reference.CustomLSTM(6, 3)
-        self.DropOut2 = nn.Dropout(p=0.2)
-        self.out = Linear(3, nb_out)
+        self.LSTM1 = reference.CustomLSTM(25, 5)
+        self.DropOut1 = nn.Dropout(p=0.1)
+        self.LSTM2 = reference.CustomLSTM(5, 2)
+        self.DropOut2 = nn.Dropout(p=0.1)
+        self.out = Linear(2, nb_out)
         self.out_activation = torch.nn.Sigmoid()
 
     def forward(self, x):
