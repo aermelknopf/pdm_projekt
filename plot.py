@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import os
 import pandas
+import numpy as np
 
 def read_files(dir, selected=None, round_decimals=None, root_dir=None):
     dfs = {}
@@ -34,13 +35,14 @@ def file_interesting(filename : str, selection=None):
     return interesting
 
 
-def line_plot(df_dict, column, value_factor=1, xlabel=None, ylabel=None, title=None, legend=False, show=False, savepath=None):
+def line_plot(df_dict, column, value_factor=1, aggregate=None, xlabel=None, ylabel=None, title=None, legend=None, show=False, savepath=None):
     plot_data = []
 
     for label, df in df_dict.items():
         xs = df['epoch'].values
         ys = df[column].values * value_factor
 
+        # potentially change name of legend (default: file name)
         if legend is not None:
             if type(legend) is dict:
                 if label in legend:
@@ -49,6 +51,12 @@ def line_plot(df_dict, column, value_factor=1, xlabel=None, ylabel=None, title=N
                 label = legend(label)
 
         plot_data.append((label, xs, ys))
+
+    if aggregate is not None:
+        aggregated = aggregate_df_dict(df_dict, aggregate=aggregate)
+        xs = aggregated['epoch'].values
+        ys = aggregated[column].values * value_factor
+        plot_data.append((aggregate, xs, ys))
 
     for (label, xs, ys) in plot_data:
         plt.plot(xs, ys, label=label)
@@ -62,7 +70,7 @@ def line_plot(df_dict, column, value_factor=1, xlabel=None, ylabel=None, title=N
     if ylabel is not None:
         plt.ylabel(ylabel)
 
-    if legend:
+    if legend is not None:
         plt.legend()
 
     # needs to happen before plt.show() else only white image will be plotted
@@ -71,6 +79,9 @@ def line_plot(df_dict, column, value_factor=1, xlabel=None, ylabel=None, title=N
 
     if show:
         plt.show()
+
+    # figure needs to be cleared!
+    plt.clf()
 
 
 def plot_poc():
@@ -125,27 +136,163 @@ def parse_dropout_layer(model_string : str):
     pass
 
 
-def plot_lr_comparison(root_dir : str):
-    learning_rates = [0.001, 0.005, 0.01, 0.02]
+def plot_run_comparison(root_dir : str, learning_rates=(0.001, 0.005, 0.01, 0.02), aggregate=None, save=False, show=True):
+    model_type = root_dir.partition("/")[2]
+    save_root_dir = os.path.join("graphs/run comparisons", model_type)
+
 
     for item in os.listdir(root_dir):                       # iterate over direct subdirectories (representing one model architecture)
         cur_dir = os.path.join(root_dir, item)
+        cur_save_dir = os.path.join(save_root_dir, item)
+
         if os.path.isdir(cur_dir):
-
             for lr in learning_rates:                       # iterate over learning rates
-                lr_string = str(lr)
-                lr_string = lr_string.partition('.')[2]     # returns before, seperator, after
-                lr_string = f"lr{lr_string}"
-
-                filter = lambda s: lr_string in s
-
-
-                data = read_files(cur_dir, selected=filter)
+                selector = get_lr_filter(lr)
+                data = read_files(cur_dir, selected=selector)
 
                 if bool(data):
                     title = f"{item}  lr={lr}"
-                    line_plot(data, column="val_acc", show=True, legend=True, title=title, xlabel="training epoch", ylabel="validation accuracy [%]", value_factor=100)
+                    legend = lambda s: "run " + s[-1]
 
+                    if save:
+                        os.makedirs(cur_save_dir,exist_ok=True)
+                        filename = f"lr-{get_lr_string(lr)}"
+                        if aggregate is not None:
+                            filename += (f"-{aggregate}")
+                        filename += (".png")
+                        save_path = os.path.join(cur_save_dir, filename)
+                    else:
+                        save_path = None
+
+                    line_plot(data, column="val_acc", show=show, aggregate=aggregate, legend=legend, title=title, xlabel="training epoch", ylabel="validation accuracy [%]", value_factor=100, savepath=save_path)
+
+
+def get_lr_string(lr : float):
+    lr_string = str(lr)
+    lr_string = lr_string.partition('.')[2]  # substring after seperator parameter ('.')
+    return lr_string
+
+
+def get_lr_filter(lr):
+    lr_string = get_lr_string(lr)
+    lr_file_string = f"lr{lr_string}"
+    return lambda s: lr_file_string in s
+
+
+def aggregate_df_dict(dfs: dict, aggregate="mean"):
+    if not dfs:
+        ValueError("no dfs in dict to aggregate in aggregate_df_dict")
+
+    df_list = [i for i in dfs.values()]
+    concated = pandas.concat(df_list)
+    grouped = concated.groupby(level=0)
+
+    if aggregate == "mean":
+        aggregated = grouped.mean()
+    elif aggregate == "median":
+        aggregated = grouped.median()
+    else:
+        ValueError("aggregate must be 'mean' oder 'median'")
+    return aggregated
+
+
+def plot_lr_comparison(root_dir : str, aggregate="mean", learning_rates=(0.001, 0.005, 0.01, 0.02), save=False, show=True):
+    model_type = root_dir.partition("/")[2]
+    save_root_dir = os.path.join("graphs/lr comparisons", model_type)
+
+    for item in os.listdir(root_dir):                       # iterate over direct subdirs (representing one model architecture)
+        cur_dir = os.path.join(root_dir, item)
+        cur_save_dir = os.path.join(save_root_dir, item)
+
+        if os.path.isdir(cur_dir):
+            aggregated_data = {}
+
+            for lr in learning_rates:                       # iterate over learning rates
+                selector = get_lr_filter(lr)
+
+                data = read_files(cur_dir, selected=selector)
+                aggregated_data[str(lr)] = aggregate_df_dict(data, aggregate=aggregate)
+
+            if bool(aggregated_data):
+                title = f"{item}    {aggregate} of different learning rates"
+                legend = lambda s: f"lr={s}"                               # no augmentation should not be necessary
+
+                if save:
+                    os.makedirs(cur_save_dir, exist_ok=True)
+                    filename = (f"{aggregate}.png")
+                    save_path = os.path.join(cur_save_dir, filename)
+                else:
+                    save_path = None
+
+                line_plot(aggregated_data, column="val_acc", show=show, aggregate=None, legend=legend, title=title, xlabel="training epoch", ylabel="validation accuracy [%]", value_factor=100, savepath=save_path)
+
+
+def read_all_data(aggregate=None):
+    learning_rates = [0.001, 0.005, 0.01, 0.02]
+    root_dir = 'results'
+    dir_filter = ('reference-model', 'sliced-model')
+
+    grouped_data = {}
+
+    for model_type in os.listdir(root_dir):
+
+        if dir_filter is None or model_type in dir_filter:
+            type_dir = os.path.join(root_dir, model_type)
+
+            type_data = {}
+
+            for architecture in os.listdir(type_dir):
+                architecture_dir = os.path.join(type_dir, architecture)
+
+                architecture_data = {}
+
+                for lr in learning_rates:
+                    selector = get_lr_filter(lr)
+                    lr_data = read_files(architecture_dir, selected=selector)
+
+                    if aggregate is not None:
+                        lr_data = aggregate_df_dict(lr_data, aggregate=aggregate)
+
+                    architecture_data[lr] = lr_data
+
+                type_data[architecture] = architecture_data
+
+            grouped_data[model_type] = type_data
+
+    return grouped_data['sliced-model'], grouped_data['reference-model']
+
+
+def take_best_lrs(dict_of_dict_of_dfs, accuracy_column='val_acc', peak_acc_count=5):
+    best_lrs = {}
+
+    for architecture, architecture_data in dict_of_dict_of_dfs.items():
+        best_peak_acc = -1
+
+        for lr, lr_data in architecture_data.items():
+                peak_acc = calc_peak_acc(lr_data, peak_acc_count, accuracy_column='val_acc')
+
+                if peak_acc > best_peak_acc:
+                    best_lr = lr
+                    best_peak_acc = peak_acc
+
+        # assign best lr of architecture as data for architecture
+        best_lrs[architecture] = architecture_data[best_lr]
+    return best_lrs
+
+
+def calc_peak_acc(df, peak_acc_count, accuracy_column):
+    data = df[accuracy_column].to_numpy()
+    data = np.sort(data)
+    data = data[::-1]
+    return data[peak_acc_count]
+    pass
+
+
+def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='val_acc', peak_count=5):
+    sliced_data, reference_data = read_all_data(aggregate=aggregate)
+    sliced_data = take_best_lrs(sliced_data, accuracy_column=accuracy_column, peak_acc_count=peak_count)
+    reference_data = take_best_lrs(reference_data, accuracy_column=accuracy_column, peak_acc_count=peak_count)
+    pass
 
 
 
@@ -154,4 +301,8 @@ if __name__ == '__main__':
     # line_plot(dfs, column="val_acc", show=True, legend=True, xlabel="epoch", ylabel="validation accuracy")
     # plot_lr_comparison("results/reference-model")
 
-    plot_lr_comparison("results/sliced-model")
+    # plot_run_comparison("results/reference-model", aggregate="median", save=True, show=False)
+
+    # plot_lr_comparison("results/sliced-model", aggregate="median", show=False, save=True)
+
+    plot_2d_comparison(aggregate='median')
