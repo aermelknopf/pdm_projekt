@@ -3,11 +3,12 @@ import os
 import pandas
 import numpy as np
 
+
 def read_files(dir, selected=None, round_decimals=None, root_dir=None):
     dfs = {}
 
     for filename in os.listdir(dir):
-        if os.path.isfile(os.path.join(dir, filename)):    # filter subdirectories
+        if os.path.isfile(os.path.join(dir, filename)):  # filter subdirectories
 
             if file_interesting(filename, selection=selected):
                 root_dir_string = "" if root_dir is None else f"{root_dir}/"
@@ -21,7 +22,7 @@ def read_files(dir, selected=None, round_decimals=None, root_dir=None):
     return dfs
 
 
-def file_interesting(filename : str, selection=None):
+def file_interesting(filename: str, selection=None):
     interesting = False
 
     if selection is None:
@@ -35,7 +36,8 @@ def file_interesting(filename : str, selection=None):
     return interesting
 
 
-def line_plot(df_dict, column, value_factor=1, aggregate=None, xlabel=None, ylabel=None, title=None, legend=None, show=False, savepath=None):
+def line_plot(df_dict, column, value_factor=1, aggregate=None, xlabel=None, ylabel=None, title=None, legend=None,
+              show=False, savepath=None):
     plot_data = []
 
     for label, df in df_dict.items():
@@ -111,13 +113,13 @@ def plot_poc():
               show=True, savepath="graphs/poc_val_acc")
 
 
-def get_title_string(model_string : str):
+def get_title_string(model_string: str):
     model_architecture = []
     while model_string != '':
         if model_string[0] == '(':
             layer_end_index = model_string.find(")")
             layer_string = model_string[1: layer_end_index]
-            model_string = model_string[layer_end_index + 1: ]
+            model_string = model_string[layer_end_index + 1:]
 
             layer_string, model_string = parse_sliced_layer(model_string)
         elif model_string[0] == 'd':
@@ -126,27 +128,27 @@ def get_title_string(model_string : str):
         model_architecture.append(layer_string)
 
 
-def parse_sliced_layer(model_string : str):
+def parse_sliced_layer(model_string: str):
     # TODO: complete?
     pass
 
 
-def parse_dropout_layer(model_string : str):
+def parse_dropout_layer(model_string: str):
     # TODO: complete?
     pass
 
 
-def plot_run_comparison(root_dir : str, learning_rates=(0.001, 0.005, 0.01, 0.02), aggregate=None, save=False, show=True):
+def plot_run_comparison(root_dir: str, learning_rates=(0.001, 0.005, 0.01, 0.02), aggregate=None, save=False,
+                        show=True):
     model_type = root_dir.partition("/")[2]
     save_root_dir = os.path.join("graphs/run comparisons", model_type)
 
-
-    for item in os.listdir(root_dir):                       # iterate over direct subdirectories (representing one model architecture)
+    for item in os.listdir(root_dir):  # iterate over direct subdirectories (representing one model architecture)
         cur_dir = os.path.join(root_dir, item)
         cur_save_dir = os.path.join(save_root_dir, item)
 
         if os.path.isdir(cur_dir):
-            for lr in learning_rates:                       # iterate over learning rates
+            for lr in learning_rates:  # iterate over learning rates
                 selector = get_lr_filter(lr)
                 data = read_files(cur_dir, selected=selector)
 
@@ -155,7 +157,7 @@ def plot_run_comparison(root_dir : str, learning_rates=(0.001, 0.005, 0.01, 0.02
                     legend = lambda s: "run " + s[-1]
 
                     if save:
-                        os.makedirs(cur_save_dir,exist_ok=True)
+                        os.makedirs(cur_save_dir, exist_ok=True)
                         filename = f"lr-{get_lr_string(lr)}"
                         if aggregate is not None:
                             filename += (f"-{aggregate}")
@@ -164,10 +166,12 @@ def plot_run_comparison(root_dir : str, learning_rates=(0.001, 0.005, 0.01, 0.02
                     else:
                         save_path = None
 
-                    line_plot(data, column="val_acc", show=show, aggregate=aggregate, legend=legend, title=title, xlabel="training epoch", ylabel="validation accuracy [%]", value_factor=100, savepath=save_path)
+                    line_plot(data, column="val_acc", show=show, aggregate=aggregate, legend=legend, title=title,
+                              xlabel="training epoch", ylabel="validation accuracy [%]", value_factor=100,
+                              savepath=save_path)
 
 
-def get_lr_string(lr : float):
+def get_lr_string(lr: float):
     lr_string = str(lr)
     lr_string = lr_string.partition('.')[2]  # substring after seperator parameter ('.')
     return lr_string
@@ -196,18 +200,19 @@ def aggregate_df_dict(dfs: dict, aggregate="mean"):
     return aggregated
 
 
-def plot_lr_comparison(root_dir : str, aggregate="mean", learning_rates=(0.001, 0.005, 0.01, 0.02), save=False, show=True):
+def plot_lr_comparison(root_dir: str, aggregate="mean", learning_rates=(0.001, 0.005, 0.01, 0.02), save=False,
+                       show=True):
     model_type = root_dir.partition("/")[2]
     save_root_dir = os.path.join("graphs/lr comparisons", model_type)
 
-    for item in os.listdir(root_dir):                       # iterate over direct subdirs (representing one model architecture)
+    for item in os.listdir(root_dir):  # iterate over direct subdirs (representing one model architecture)
         cur_dir = os.path.join(root_dir, item)
         cur_save_dir = os.path.join(save_root_dir, item)
 
         if os.path.isdir(cur_dir):
             aggregated_data = {}
 
-            for lr in learning_rates:                       # iterate over learning rates
+            for lr in learning_rates:  # iterate over learning rates
                 selector = get_lr_filter(lr)
 
                 data = read_files(cur_dir, selected=selector)
@@ -215,7 +220,7 @@ def plot_lr_comparison(root_dir : str, aggregate="mean", learning_rates=(0.001, 
 
             if bool(aggregated_data):
                 title = f"{item}    {aggregate} of different learning rates"
-                legend = lambda s: f"lr={s}"                               # no augmentation should not be necessary
+                legend = lambda s: f"lr={s}"  # no augmentation should not be necessary
 
                 if save:
                     os.makedirs(cur_save_dir, exist_ok=True)
@@ -224,7 +229,9 @@ def plot_lr_comparison(root_dir : str, aggregate="mean", learning_rates=(0.001, 
                 else:
                     save_path = None
 
-                line_plot(aggregated_data, column="val_acc", show=show, aggregate=None, legend=legend, title=title, xlabel="training epoch", ylabel="validation accuracy [%]", value_factor=100, savepath=save_path)
+                line_plot(aggregated_data, column="val_acc", show=show, aggregate=None, legend=legend, title=title,
+                          xlabel="training epoch", ylabel="validation accuracy [%]", value_factor=100,
+                          savepath=save_path)
 
 
 def read_all_data(aggregate=None):
@@ -236,7 +243,7 @@ def read_all_data(aggregate=None):
 
     for model_type in os.listdir(root_dir):
 
-        if dir_filter is None or model_type in dir_filter:
+        if model_type in dir_filter:
             type_dir = os.path.join(root_dir, model_type)
 
             type_data = {}
@@ -262,6 +269,8 @@ def read_all_data(aggregate=None):
     return grouped_data['sliced-model'], grouped_data['reference-model']
 
 
+# Takes dict of dicts of dataframes and returns dict of dataframes containing
+# the data of the best learning rate for each architecture
 def take_best_lrs(dict_of_dict_of_dfs, accuracy_column='val_acc', peak_acc_count=5):
     best_lrs = {}
 
@@ -269,14 +278,14 @@ def take_best_lrs(dict_of_dict_of_dfs, accuracy_column='val_acc', peak_acc_count
         best_peak_acc = -1
 
         for lr, lr_data in architecture_data.items():
-                peak_acc = calc_peak_acc(lr_data, peak_acc_count, accuracy_column='val_acc')
+            peak_acc = calc_peak_acc(lr_data, peak_acc_count, accuracy_column='val_acc')
 
-                if peak_acc > best_peak_acc:
-                    best_lr = lr
-                    best_peak_acc = peak_acc
+            if peak_acc > best_peak_acc:
+                best_lr = lr
+                best_peak_acc = peak_acc
 
         # assign best lr of architecture as data for architecture
-        best_lrs[architecture] = architecture_data[best_lr]
+        best_lrs[f"{architecture} lr: {best_lr}"] = architecture_data[best_lr]
     return best_lrs
 
 
@@ -288,12 +297,41 @@ def calc_peak_acc(df, peak_acc_count, accuracy_column):
     pass
 
 
-def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='val_acc', peak_count=5):
+def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='val_acc', peak_count=5, savedir=None):
     sliced_data, reference_data = read_all_data(aggregate=aggregate)
     sliced_data = take_best_lrs(sliced_data, accuracy_column=accuracy_column, peak_acc_count=peak_count)
     reference_data = take_best_lrs(reference_data, accuracy_column=accuracy_column, peak_acc_count=peak_count)
-    pass
 
+    sliced_data = {key: (df[time_column].median(), 100 * calc_peak_acc(df, peak_count, accuracy_column)) for (key, df) in sliced_data.items()}
+    reference_data = {key: (df[time_column].median(), 100 * calc_peak_acc(df, peak_count, accuracy_column)) for (key, df) in reference_data.items()}
+
+    # filter out horrible model architectures
+    # sliced_data = {key: value for key, value in sliced_data.items() if value[0] < 10}
+
+    sliced_x = [value[0] for value in sliced_data.values()]
+    sliced_y = [value[1] for value in sliced_data.values()]
+    sliced_color = 'bo'
+
+    reference_x = [value[0] for value in reference_data.values()]
+    reference_y = [value[1] for value in reference_data.values()]
+    reference_color = 'ro'
+
+    title_string = f"{accuracy_column} and {time_column} comparison of different model types"
+    filename = f"{title_string}.png"
+
+    plt.plot(sliced_x, sliced_y, sliced_color, label='sliced-model')
+    plt.plot(reference_x, reference_y, reference_color, label='reference-model')
+    plt.legend()
+    plt.xlabel(f"epoch {time_column} [s]")
+    plt.ylabel(f"{accuracy_column} [%]")
+    plt.title(title_string)
+
+    if savedir is None:
+        plt.show()
+    else:
+        plt.savefig(os.path.join(savedir, filename))
+
+    plt.clf()
 
 
 if __name__ == '__main__':
@@ -305,4 +343,4 @@ if __name__ == '__main__':
 
     # plot_lr_comparison("results/sliced-model", aggregate="median", show=False, save=True)
 
-    plot_2d_comparison(aggregate='median')
+    plot_2d_comparison(aggregate='median', time_column='time', savedir='graphs/2d comparisons')
