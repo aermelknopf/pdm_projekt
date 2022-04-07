@@ -297,7 +297,7 @@ def calc_peak_acc(df, peak_acc_count, accuracy_column):
     pass
 
 
-def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='val_acc', peak_count=5, savedir=None):
+def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='val_acc', peak_count=5, savedir=None, filter=None, filter_str=''):
     sliced_data, reference_data = read_all_data(aggregate=aggregate)
     sliced_data = take_best_lrs(sliced_data, accuracy_column=accuracy_column, peak_acc_count=peak_count)
     reference_data = take_best_lrs(reference_data, accuracy_column=accuracy_column, peak_acc_count=peak_count)
@@ -305,8 +305,9 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
     sliced_data = {key: (df[time_column].median(), 100 * calc_peak_acc(df, peak_count, accuracy_column)) for (key, df) in sliced_data.items()}
     reference_data = {key: (df[time_column].median(), 100 * calc_peak_acc(df, peak_count, accuracy_column)) for (key, df) in reference_data.items()}
 
-    # filter out horrible model architectures
-    # sliced_data = {key: value for key, value in sliced_data.items() if value[0] < 10}
+    # filter
+    sliced_data = {key: value for key, value in sliced_data.items() if filter(value)}
+    reference_data = {key: value for key, value in reference_data.items() if filter(value)}
 
     sliced_x = [value[0] for value in sliced_data.values()]
     sliced_y = [value[1] for value in sliced_data.values()]
@@ -316,8 +317,8 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
     reference_y = [value[1] for value in reference_data.values()]
     reference_color = 'ro'
 
-    title_string = f"{accuracy_column} and {time_column} comparison of different model types"
-    filename = f"{title_string}.png"
+    title_string = f"{accuracy_column} and {time_column} {aggregate} of different models"
+    filename = f"{aggregate}-{accuracy_column}-{time_column}-{filter_str}.png"
 
     plt.plot(sliced_x, sliced_y, sliced_color, label='sliced-model')
     plt.plot(reference_x, reference_y, reference_color, label='reference-model')
@@ -343,4 +344,9 @@ if __name__ == '__main__':
 
     # plot_lr_comparison("results/sliced-model", aggregate="median", show=False, save=True)
 
-    plot_2d_comparison(aggregate='median', time_column='time', savedir='graphs/2d comparisons')
+    aggregates = ['mean', 'median']
+    times = ['time', 'fwd_time', 'bwd_time']
+
+    for aggregate in aggregates:
+        for time in times:
+            plot_2d_comparison(aggregate=aggregate, time_column=time, savedir='graphs/2d comparisons', filter=lambda val: val[0] < 14, filter_str='<14s')
