@@ -1,3 +1,4 @@
+import os
 import time
 import numpy as np
 import pandas as pd
@@ -358,8 +359,9 @@ if __name__ == '__main__':
 
     # manually configure dir to reflect model type and architecture
     model_type = "sliced-model"
-    architecture_string = "(10-1_15-2)_drop15"
+    architecture_string = "(11-1_14-1)"
     logdir = f"results/{model_type}/{architecture_string}"
+    os.makedirs(logdir, exist_ok=True)
 
     for learning_rate in learning_rates:
         for i in range(1, num_tries + 1):

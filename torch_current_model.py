@@ -8,11 +8,11 @@ import custom_lstm_example as reference
 class SliceModel(nn.Module):
     def __init__(self, nb_out):
         super().__init__()
-        self.sliceLSTM1 = custom.SliceLSTM([(10, 1), (15, 2)])
-        self.DropOut1 = nn.Dropout(p=0.15)
+        self.sliceLSTM1 = custom.SliceLSTM([(11, 1), (14, 1)])
+        # self.DropOut1 = nn.Dropout(p=0.1)
         # self.sliceLSTM2 = custom.SliceLSTM([(20, 10), (20, 10)])
         # self.DropOut2 = nn.Dropout(p=0.2)
-        self.out = Linear(3, nb_out)
+        self.out = Linear(2, nb_out)
         self.out_activation = torch.nn.Sigmoid()
 
     def forward(self, x):
