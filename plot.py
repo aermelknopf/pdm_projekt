@@ -349,4 +349,4 @@ if __name__ == '__main__':
 
     for aggregate in aggregates:
         for time in times:
-            plot_2d_comparison(aggregate=aggregate, time_column=time, savedir='graphs/2d comparisons', filter=lambda val: val[0] < 14, filter_str='<14s')
+            plot_2d_comparison(aggregate=aggregate, time_column=time, savedir='graphs/2d comparisons', filter=lambda val: val[0] < 14, filter_str='max14s')
