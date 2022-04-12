@@ -358,8 +358,8 @@ if __name__ == '__main__':
     num_tries = 5
 
     # manually configure dir to reflect model type and architecture
-    model_type = "reference-model"
-    architecture_string = "25-5_drop10"
+    model_type = "sliced-model"
+    architecture_string = "(12-1_13-1)"
     logdir = f"results/{model_type}/{architecture_string}"
     os.makedirs(logdir, exist_ok=True)
 
@@ -367,8 +367,12 @@ if __name__ == '__main__':
         for i in range(1, num_tries + 1):
 
             # new model every iteration
-            # model = current_model.SliceModel(nb_out)
-            model = current_model.ReferenceCustomModel(nb_out)
+            if model_type == "reference-model":
+                model = current_model.ReferenceCustomModel(nb_out)
+            elif model_type == "sliced-model":
+                model = current_model.SliceModel(nb_out)
+            else:
+                ValueError("Wrong model_type! Must be 'reference-model' or 'sliced-model'")
 
             print(f"~~~~~~~~~~~~ lr={learning_rate}    run: {i} ~~~~~~~~~~~~")
 

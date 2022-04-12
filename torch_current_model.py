@@ -8,7 +8,7 @@ import custom_lstm_example as reference
 class SliceModel(nn.Module):
     def __init__(self, nb_out):
         super().__init__()
-        self.sliceLSTM1 = custom.SliceLSTM([(11, 1), (14, 1)])
+        self.sliceLSTM1 = custom.SliceLSTM([(12, 1), (13, 1)])
         # self.DropOut1 = nn.Dropout(p=0.1)
         # self.sliceLSTM2 = custom.SliceLSTM([(20, 10), (20, 10)])
         # self.DropOut2 = nn.Dropout(p=0.2)
