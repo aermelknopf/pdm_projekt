@@ -195,8 +195,10 @@ def aggregate_df_dict(dfs: dict, aggregate="mean"):
         aggregated = grouped.mean()
     elif aggregate == "median":
         aggregated = grouped.median()
+    elif callable(aggregate):
+        aggregated = aggregate(dfs)
     else:
-        ValueError("aggregate must be 'mean' oder 'median'")
+        ValueError("aggregate must be 'mean', 'median' or callable")
     return aggregated
 
 
@@ -293,7 +295,7 @@ def calc_peak_acc(df, peak_acc_count, accuracy_column):
     data = df[accuracy_column].to_numpy()
     data = np.sort(data)
     data = data[::-1]
-    return data[peak_acc_count]
+    return data[peak_acc_count-1]
     pass
 
 
@@ -317,8 +319,9 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
     reference_y = [value[1] for value in reference_data.values()]
     reference_color = 'ro'
 
-    title_string = f"{accuracy_column} and {time_column} {aggregate} of different models"
-    filename = f"{aggregate}-{accuracy_column}-{time_column}-{filter_str}.png"
+    aggregate_name = aggregate if type(aggregate) is str else "max"
+    title_string = f"{accuracy_column} and {time_column} {aggregate_name} of different models"
+    filename = f"{aggregate_name}-{accuracy_column}-{time_column}-{filter_str}.png"
 
     plt.plot(sliced_x, sliced_y, sliced_color, label='sliced-model')
     plt.plot(reference_x, reference_y, reference_color, label='reference-model')
@@ -335,6 +338,26 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
     plt.clf()
 
 
+def plot_runtime_valacc_comparison():
+    aggregates = ['mean', 'median', get_max_valacc_run]
+    times = ['time', 'fwd_time', 'bwd_time']
+
+    for aggregate in aggregates:
+        for time in times:
+            plot_2d_comparison(aggregate=aggregate, time_column=time, savedir='graphs/2d comparisons',
+                               filter=lambda val: val[0] < 14, filter_str='max14s')
+
+
+def get_max_valacc_run(dfs : dict, peak_acc_count=5):
+    run_list = [(key, calc_peak_acc(df, peak_acc_count=peak_acc_count, accuracy_column='val_acc')) for (key, df) in dfs.items()]
+    sort_key = lambda i: i[1]
+    run_list.sort(key=sort_key, reverse=True)
+    best_df = run_list[0][0]
+
+    return dfs[best_df]
+
+
+
 if __name__ == '__main__':
     # dfs = read_files("results")
     # line_plot(dfs, column="val_acc", show=True, legend=True, xlabel="epoch", ylabel="validation accuracy")
@@ -344,9 +367,4 @@ if __name__ == '__main__':
 
     # plot_lr_comparison("results/sliced-model", aggregate="median", show=False, save=True)
 
-    aggregates = ['mean', 'median']
-    times = ['time', 'fwd_time', 'bwd_time']
-
-    for aggregate in aggregates:
-        for time in times:
-            plot_2d_comparison(aggregate=aggregate, time_column=time, savedir='graphs/2d comparisons', filter=lambda val: val[0] < 14, filter_str='max14s')
+    plot_runtime_valacc_comparison()

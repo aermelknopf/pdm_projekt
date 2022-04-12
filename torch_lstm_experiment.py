@@ -358,8 +358,8 @@ if __name__ == '__main__':
     num_tries = 5
 
     # manually configure dir to reflect model type and architecture
-    model_type = "sliced-model"
-    architecture_string = "(11-1_14-1)"
+    model_type = "reference-model"
+    architecture_string = "25-5_drop10"
     logdir = f"results/{model_type}/{architecture_string}"
     os.makedirs(logdir, exist_ok=True)
 
@@ -368,7 +368,7 @@ if __name__ == '__main__':
 
             # new model every iteration
             # model = current_model.SliceModel(nb_out)
-            model = current_model.SliceModel(1)
+            model = current_model.ReferenceCustomModel(nb_out)
 
             print(f"~~~~~~~~~~~~ lr={learning_rate}    run: {i} ~~~~~~~~~~~~")
 
