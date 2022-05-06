@@ -14,12 +14,12 @@ class SliceLSTM(nn.Module):
 
     def __init__(self, lstm_slices: list[tuple]):
         super().__init__()
-        # length of the input slices
-        self.input_slices = [x[0] for x in lstm_slices]
-        # length of the hidden units of the respective input slices (index-paired with self.input_slices)
-        self.hidden_slices = [x[1] for x in lstm_slices]
-        # hidden size of the entire layer
-        self.hidden_size = sum(self.hidden_slices)
+        # input_slices: length of the input slices
+        # hidden_slices: length of the hidden units of the respective input slices (index-paired with input_slices)
+        self.slices = lstm_slices
+        ## self.input_slices, self.hidden_slices = [(x[0], x[1]) for x in lstm_slices]
+        # hidden size of the entire layer (sum of length of slices)
+        self.hidden_size = sum(x[1] for x in self.slices)
         # list of matrices of weights for input unit slices. Concatenation of weight matrix of all four gates
         # (i, f, g, o). One matrix contains weights for one slice of  i, f, g and o.
         self.Ws = nn.ParameterList([nn.Parameter(torch.Tensor(input_size, hidden_size * 4)) for input_size, hidden_size in lstm_slices])
@@ -44,29 +44,28 @@ class SliceLSTM(nn.Module):
     def forward(self, x,
                 init_states=None):
 
-        # Some input dimension sanity checks:
-        batch_size, sequence_length, feature_size = x.size()
+        # assumes x is of shape (batch, sequence, feature) !!!!
+        bs, seq_sz, feat_sz = x.size()
+
+        # some input sanity checks
         # print(f"input shape: {x.size()}")
         # print(f"batch size: {batch_size}, sequence_length: {sequence_length}, feature size: {feature_size}")
         total_input_size = sum(self.input_slices)
-        assert(feature_size == total_input_size)
+        assert(feat_sz == total_input_size)
 
-        # assumes x is of shape (batch, sequence, feature) !!!!
-        bs, seq_sz, _ = x.size()
         hidden_seq = []
         # TODO: other initialization possible
         if init_states is None:
-            h_t, c_t = (torch.zeros(bs, self.hidden_size).to(x.device),
+            init_states = (torch.zeros(bs, self.hidden_size).to(x.device),
                         torch.zeros(bs, self.hidden_size).to(x.device))
-        else:
-            h_t, c_t = init_states
+        h_t, c_t = init_states
 
         for t in range(seq_sz):
             in_start = 0
             hid_start = 0
             slice_is, slice_fs, slice_gs, slice_os = [], [], [], []
 
-            for index, (input_size, hidden_size) in enumerate(zip(self.input_slices, self.hidden_slices)):
+            for index, (input_size, hidden_size) in enumerate(self.slices):
                 in_end = in_start + input_size          # end index exclusive in slicing
                 hid_end = hid_start + hidden_size       # end index exclusive in slicing
 
