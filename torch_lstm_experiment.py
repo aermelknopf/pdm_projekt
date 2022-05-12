@@ -152,7 +152,7 @@ def train(model, train_set, loss_fn, optimizer, batch_size=32, train_workers=2, 
 
 
 # function for validation
-def validate(model, dataloader, loss_fn, print_metrics=True, history=None, device='cpu'):
+def validate(model, dataloader, loss_fn, print_metrics=True, history=None):
     size = len(dataloader.dataset)
     num_batches = len(dataloader)
 
@@ -160,11 +160,9 @@ def validate(model, dataloader, loss_fn, print_metrics=True, history=None, devic
     test_loss, correct = 0.0, 0.0
     with torch.no_grad():
         for X, y in dataloader:
-            '''pass device variable and uncomment for gpu training'''
-            # X, y = X.to(device), y.to(device)
             pred = model(X)
             test_loss += loss_fn(pred, y).item()
-            # ACCURACY FORMULA WORKS ONLY FOR BINARY CLASSIFICATION
+            # TODO: ACCURACY FORMULA WORKS ONLY FOR BINARY CLASSIFICATION
             # increase = (pred.argmax(1) == y).type(torch.float).sum().item() / X.shape[0]   <- ORIGINAL
             pred_classes = ((pred >= 0.5) == y)
             correct += pred_classes.sum().item()
@@ -205,9 +203,6 @@ def write_epoch_log(data_history, filepath, initial_string="epoch time fwd_time 
 ''' ~~~~~~~~~~~~~~~~~~~~~
     ~~~~ SCRIPT AREA ~~~~ '''
 if __name__ == '__main__':
-    # STEP -1: AGGREGATE AND READ DATA
-    # data = read_input_files()
-
 
     # STEP 0: CHOOSE DATA FROM DIRECTORY (changed from orig code: was azure blob stuff)
     directory = "CMaps"
@@ -243,15 +238,11 @@ if __name__ == '__main__':
     train_df['RUL'] = train_df['max'] - train_df['cycle']
     train_df.drop('max', axis=1, inplace=True)
 
-    #train_df.to_csv('CMAPS/train_df_01', index=False)
-    #test_df.to_csv('CMAPS/test_df_01', index=False)
-
     # generate label columns for training data
     w1 = 30
     w0 = 15
 
-    # Label1 indicates a failure will occur within the next 30 cycles.
-    # 1 indicates failure, 0 indicates healthy
+    # Label1 == 1 indicates a failure will occur within the next 30 cycles (otherwise: 0).
     train_df['label1'] = np.where(train_df['RUL'] <= w1, 1, 0 )
 
     # label2 is multiclass, value 1 is identical to label1,
@@ -260,7 +251,7 @@ if __name__ == '__main__':
     train_df.loc[train_df['RUL'] <= w0, 'label2'] = 2
 
 
-    # STEP 3: DATA NORMALIZATION (values between [0.0,1.0])
+    # STEP 3: DATA NORMALIZATION (values within [0.0,1.0])
     # MinMax normalization - train data
     train_df['cycle_norm'] = train_df['cycle']
     cols_normalize = train_df.columns.difference(['id', 'cycle', 'RUL', 'label1', 'label2'])
@@ -296,7 +287,7 @@ if __name__ == '__main__':
     test_df.drop('max', axis=1, inplace=True)
 
     # generate label columns w0 and w1 for test data
-    test_df['label1'] = np.where(test_df['RUL'] <= w1, 1, 0 )
+    test_df['label1'] = np.where(test_df['RUL'] <= w1, 1, 0)
     test_df['label2'] = test_df['label1']
     test_df.loc[test_df['RUL'] <= w0, 'label2'] = 2
 
@@ -351,7 +342,7 @@ if __name__ == '__main__':
     nb_out = label_array.shape[1]
 
 
-    # STEP 7: Training using training function and defined parameters
+    # STEP 6: Training using training function and defined parameters
     # we try each configuration 5 times:
 
     learning_rates = [0.001, 0.005, 0.01, 0.02]
@@ -359,7 +350,7 @@ if __name__ == '__main__':
 
     # manually configure dir to reflect model type and architecture
     model_type = "sliced-model"
-    architecture_string = "(12-1_13-1)"
+    architecture_string = "(12-1_13-1)_test"
     logdir = f"results/{model_type}/{architecture_string}"
     os.makedirs(logdir, exist_ok=True)
 

@@ -50,7 +50,7 @@ class SliceLSTM(nn.Module):
         # some input sanity checks
         # print(f"input shape: {x.size()}")
         # print(f"batch size: {batch_size}, sequence_length: {sequence_length}, feature size: {feature_size}")
-        total_input_size = sum(self.input_slices)
+        total_input_size = sum(x[0] for x in self.slices)
         assert(feat_sz == total_input_size)
 
         hidden_seq = []
