@@ -77,6 +77,7 @@ if __name__ == '__main__':
     train_set = TensorDataset(train_data, train_labels)
     val_set = TensorDataset(val_data, val_labels)
 
+
     # STEP 2: create model
     model = SliceModel(1)
     learning_rate = 0.005
@@ -85,5 +86,4 @@ if __name__ == '__main__':
     # STEP 3: train model
     history = train(model=model, train_set=train_set, batch_size=1000, train_workers=4,
                     loss_fn=nn.BCELoss(), optimizer=Adam(model.parameters(), lr=learning_rate),
-                    val_set=val_set, val_workers=2, n_epochs=50)
-
+                    val_set=val_set, val_workers=4, n_epochs=50)

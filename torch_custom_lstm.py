@@ -75,6 +75,8 @@ class SliceLSTM(nn.Module):
                 # batch the computations for each slice into one single matrix multiplication
                 gates = cur_x_t @ self.Ws[index] + cur_h_t @ self.Us[index] + self.biases[index]
 
+                # TODO: evtl gates zusammen fassen?
+                # TODO: INPLACE Verändern statt Kopieren?!
                 # apply activation functions for each gate slice
                 i_t, f_t, g_t, o_t = (
                     torch.sigmoid(gates[:, :hidden_size]),                     # input gate slice
@@ -83,6 +85,7 @@ class SliceLSTM(nn.Module):
                     torch.sigmoid(gates[:, hidden_size * 3:]),                 # output gate slice
                 )
 
+                # TODO: direct richtig großen Tensor erstellen und beschreiben evtl schneller!
                 slice_is.append(i_t)
                 slice_fs.append(f_t)
                 slice_gs.append(g_t)
