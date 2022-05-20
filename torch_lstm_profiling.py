@@ -15,7 +15,7 @@ class SliceModel(nn.Module):
 
     def __init__(self, nb_out):
         super().__init__()
-        self.sliceLSTM1 = custom.SliceLSTM([(12, 1), (13, 1)])
+        self.sliceLSTM1 = custom.SliceLSTM([(10, 3), (15, 7)])
         # self.DropOut1 = nn.Dropout(p=0.1)
         # self.sliceLSTM2 = custom.SliceLSTM([(20, 10), (20, 10)])
         # self.DropOut2 = nn.Dropout(p=0.2)
@@ -84,6 +84,6 @@ if __name__ == '__main__':
 
 
     # STEP 3: train model
-    history = train(model=model, train_set=train_set, batch_size=1000, train_workers=4,
+    history = train(model=model, train_set=train_set, batch_size=5, train_workers=0,
                     loss_fn=nn.BCELoss(), optimizer=Adam(model.parameters(), lr=learning_rate),
-                    val_set=val_set, val_workers=4, n_epochs=50)
+                    val_set=val_set, val_workers=0, n_epochs=50)

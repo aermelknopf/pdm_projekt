@@ -60,11 +60,20 @@ class SliceLSTM(nn.Module):
                         torch.zeros(bs, self.hidden_size).to(x.device))
         h_t, c_t = init_states
 
+        gate_shape = (x.shape[0], self.hidden_size)
+
+        # iterate over timesteps in sequence
         for t in range(seq_sz):
             in_start = 0
             hid_start = 0
-            slice_is, slice_fs, slice_gs, slice_os = [], [], [], []
 
+            # aggregate tensors to store results of gate slices in one matrix
+            i_t = torch.empty(gate_shape, requires_grad=True)
+            f_t = torch.empty(gate_shape, requires_grad=True)
+            g_t = torch.empty(gate_shape, requires_grad=True)
+            o_t = torch.empty(gate_shape, requires_grad=True)
+
+            # iterate over slices for each timestep
             for index, (input_size, hidden_size) in enumerate(self.slices):
                 in_end = in_start + input_size          # end index exclusive in slicing
                 hid_end = hid_start + hidden_size       # end index exclusive in slicing
@@ -75,35 +84,26 @@ class SliceLSTM(nn.Module):
                 # batch the computations for each slice into one single matrix multiplication
                 gates = cur_x_t @ self.Ws[index] + cur_h_t @ self.Us[index] + self.biases[index]
 
-                # TODO: evtl gates zusammen fassen?
-                # TODO: INPLACE Verändern statt Kopieren?!
-                # apply activation functions for each gate slice
-                i_t, f_t, g_t, o_t = (
-                    torch.sigmoid(gates[:, :hidden_size]),                     # input gate slice
-                    torch.sigmoid(gates[:, hidden_size: hidden_size * 2]),     # forget gate slice
-                    torch.tanh(gates[:, hidden_size * 2: hidden_size * 3]),    # 'gate gate' slice
-                    torch.sigmoid(gates[:, hidden_size * 3:]),                 # output gate slice
-                )
+                #TODO: fix 'view of leaf variable that requires grad is used in an in-place operation' error
+                # apply activation functions and store results in aggregate tensors
+                i_t[:, hid_start: hid_end] = torch.sigmoid(gates[:, :hidden_size])
+                f_t[:, hid_start: hid_end] = torch.sigmoid(gates[:, hidden_size: hidden_size * 2])
+                g_t[:, hid_start: hid_end] = torch.tanh(gates[:, hidden_size * 2: hidden_size * 3])
+                o_t[:, hid_start: hid_end] = torch.sigmoid(gates[:, hidden_size * 3:])
 
-                # TODO: direct richtig großen Tensor erstellen und beschreiben evtl schneller!
-                slice_is.append(i_t)
-                slice_fs.append(f_t)
-                slice_gs.append(g_t)
-                slice_os.append(o_t)
+                # TODO: check if this really was missing OMG
+                in_start = in_end
+                hid_start = hid_end
 
-            total_i = torch.cat(slice_is, dim=1)
-            total_f = torch.cat(slice_fs, dim=1)
-            total_g = torch.cat(slice_gs, dim=1)
-            total_o = torch.cat(slice_os, dim=1)
 
             # apply dense connector-layer
-            i_t = torch.sigmoid(total_i @ self.connector_Ws[:, :self.hidden_size]
+            i_t = torch.sigmoid(i_t @ self.connector_Ws[:, :self.hidden_size]
                                 + self.connector_biases[:self.hidden_size])
-            f_t = torch.sigmoid(total_f @ self.connector_Ws[:, self.hidden_size:self.hidden_size * 2]
+            f_t = torch.sigmoid(f_t @ self.connector_Ws[:, self.hidden_size:self.hidden_size * 2]
                                 + self.connector_biases[self.hidden_size:self.hidden_size * 2])
-            g_t = torch.tanh(total_g @ self.connector_Ws[:, self.hidden_size * 2:self.hidden_size * 3]
+            g_t = torch.tanh(g_t @ self.connector_Ws[:, self.hidden_size * 2:self.hidden_size * 3]
                              + self.connector_biases[self.hidden_size * 2:self.hidden_size * 3])
-            o_t = torch.sigmoid(total_o @ self.connector_Ws[:, self.hidden_size * 3:]
+            o_t = torch.sigmoid(o_t @ self.connector_Ws[:, self.hidden_size * 3:]
                                 + self.connector_biases[self.hidden_size * 3:])
 
             c_t = f_t * c_t + i_t * g_t
