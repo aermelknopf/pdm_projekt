@@ -19,7 +19,7 @@ class SliceModel(nn.Module):
         # self.DropOut1 = nn.Dropout(p=0.1)
         # self.sliceLSTM2 = custom.SliceLSTM([(20, 10), (20, 10)])
         # self.DropOut2 = nn.Dropout(p=0.2)
-        self.out = Linear(2, nb_out)
+        self.out = Linear(10, nb_out)
         self.out_activation = torch.nn.Sigmoid()
 
     def forward(self, x):
@@ -61,7 +61,7 @@ class ReferenceCustomModel(nn.Module):
 
 
 if __name__ == '__main__':
-    # STEP 1: create dummy data
+    # create some dummy data
     data_length = 100.000
     val_share = 0.1
 
@@ -71,19 +71,17 @@ if __name__ == '__main__':
     train_data = torch.rand((train_length, 50, 25))
     val_data = torch.rand((val_length, 50, 25))
 
-    train_labels = torch.randint(0, 2, (train_length, 1), dtype=torch.float)    # random ints within [0,1]
-    val_labels = torch.randint(0, 2, (val_length, 1), dtype=torch.float)        # random ints within [0,1]
+    train_labels = torch.randint(0, 2, (train_length, 1), dtype=torch.float)    # for integer numbers [0,2) = [0,1]
+    val_labels = torch.randint(0, 2, (val_length, 1), dtype=torch.float)        # for integer numbers [0,2) = [0,1]
 
     train_set = TensorDataset(train_data, train_labels)
     val_set = TensorDataset(val_data, val_labels)
 
-
-    # STEP 2: create model
+    # create model
     model = SliceModel(1)
     learning_rate = 0.005
 
-
-    # STEP 3: train model
+    # train model
     history = train(model=model, train_set=train_set, batch_size=5, train_workers=0,
                     loss_fn=nn.BCELoss(), optimizer=Adam(model.parameters(), lr=learning_rate),
                     val_set=val_set, val_workers=0, n_epochs=50)

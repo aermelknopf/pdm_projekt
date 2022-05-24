@@ -14,10 +14,10 @@ class SliceLSTM(nn.Module):
 
     def __init__(self, lstm_slices: list[tuple]):
         super().__init__()
-        # input_slices: length of the input slices
-        # hidden_slices: length of the hidden units of the respective input slices (index-paired with input_slices)
+        # list with tuples: (input units for this slice, hidden units for this slice) for each slice of the layer
         self.slices = lstm_slices
-        ## self.input_slices, self.hidden_slices = [(x[0], x[1]) for x in lstm_slices]
+        # amount of slices in this layer
+        self.num_slices = len(lstm_slices)
         # hidden size of the entire layer (sum of length of slices)
         self.hidden_size = sum(x[1] for x in self.slices)
         # list of matrices of weights for input unit slices. Concatenation of weight matrix of all four gates
@@ -54,7 +54,7 @@ class SliceLSTM(nn.Module):
         assert(feat_sz == total_input_size)
 
         hidden_seq = []
-        # TODO: other initialization possible
+        # non-zero initialization also possible
         if init_states is None:
             init_states = (torch.zeros(bs, self.hidden_size).to(x.device),
                         torch.zeros(bs, self.hidden_size).to(x.device))
@@ -62,16 +62,16 @@ class SliceLSTM(nn.Module):
 
         gate_shape = (x.shape[0], self.hidden_size)
 
-        # iterate over timesteps in sequence
+        # iterate over time steps in sequence
         for t in range(seq_sz):
             in_start = 0
             hid_start = 0
 
-            # aggregate tensors to store results of gate slices in one matrix
-            i_t = torch.empty(gate_shape, requires_grad=True)
-            f_t = torch.empty(gate_shape, requires_grad=True)
-            g_t = torch.empty(gate_shape, requires_grad=True)
-            o_t = torch.empty(gate_shape, requires_grad=True)
+            # aggregate lists to store resulting gate tensors for each slice
+            slice_is: list[torch.Tensor] = [None] * self.num_slices
+            slice_fs: list[torch.Tensor] = [None] * self.num_slices
+            slice_gs: list[torch.Tensor] = [None] * self.num_slices
+            slice_os: list[torch.Tensor] = [None] * self.num_slices
 
             # iterate over slices for each timestep
             for index, (input_size, hidden_size) in enumerate(self.slices):
@@ -84,26 +84,34 @@ class SliceLSTM(nn.Module):
                 # batch the computations for each slice into one single matrix multiplication
                 gates = cur_x_t @ self.Ws[index] + cur_h_t @ self.Us[index] + self.biases[index]
 
-                #TODO: fix 'view of leaf variable that requires grad is used in an in-place operation' error
-                # apply activation functions and store results in aggregate tensors
-                i_t[:, hid_start: hid_end] = torch.sigmoid(gates[:, :hidden_size])
-                f_t[:, hid_start: hid_end] = torch.sigmoid(gates[:, hidden_size: hidden_size * 2])
-                g_t[:, hid_start: hid_end] = torch.tanh(gates[:, hidden_size * 2: hidden_size * 3])
-                o_t[:, hid_start: hid_end] = torch.sigmoid(gates[:, hidden_size * 3:])
+                # apply activation functions for each gate slice
+                i_t = torch.sigmoid(gates[:, :hidden_size])                    # input gate slice
+                f_t = torch.sigmoid(gates[:, hidden_size: hidden_size * 2])    # forget gate slice
+                g_t = torch.tanh(gates[:, hidden_size * 2: hidden_size * 3])  # 'gate gate' slice
+                o_t = torch.sigmoid(gates[:, hidden_size * 3:])  # output gate slice
 
-                # TODO: check if this really was missing OMG
+                slice_is[index] = i_t
+                slice_fs[index] = f_t
+                slice_gs[index] = g_t
+                slice_os[index] = o_t
+
+                # start index (inclusive) of next slice is previous (exclusive) end index
                 in_start = in_end
                 hid_start = hid_end
 
+            total_i = torch.cat(slice_is, dim=1)
+            total_f = torch.cat(slice_fs, dim=1)
+            total_g = torch.cat(slice_gs, dim=1)
+            total_o = torch.cat(slice_os, dim=1)
 
             # apply dense connector-layer
-            i_t = torch.sigmoid(i_t @ self.connector_Ws[:, :self.hidden_size]
+            i_t = torch.sigmoid(total_i @ self.connector_Ws[:, :self.hidden_size]
                                 + self.connector_biases[:self.hidden_size])
-            f_t = torch.sigmoid(f_t @ self.connector_Ws[:, self.hidden_size:self.hidden_size * 2]
+            f_t = torch.sigmoid(total_f @ self.connector_Ws[:, self.hidden_size:self.hidden_size * 2]
                                 + self.connector_biases[self.hidden_size:self.hidden_size * 2])
-            g_t = torch.tanh(g_t @ self.connector_Ws[:, self.hidden_size * 2:self.hidden_size * 3]
+            g_t = torch.tanh(total_g @ self.connector_Ws[:, self.hidden_size * 2:self.hidden_size * 3]
                              + self.connector_biases[self.hidden_size * 2:self.hidden_size * 3])
-            o_t = torch.sigmoid(o_t @ self.connector_Ws[:, self.hidden_size * 3:]
+            o_t = torch.sigmoid(total_o @ self.connector_Ws[:, self.hidden_size * 3:]
                                 + self.connector_biases[self.hidden_size * 3:])
 
             c_t = f_t * c_t + i_t * g_t
@@ -114,6 +122,5 @@ class SliceLSTM(nn.Module):
         hidden_seq = torch.cat(hidden_seq, dim=0)
         # reshape from shape (sequence, batch, feature) to (batch, sequence, feature)
         hidden_seq = hidden_seq.transpose(0, 1).contiguous()
-
 
         return hidden_seq, (h_t, c_t)
