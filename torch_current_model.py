@@ -14,16 +14,27 @@ class SliceModel(nn.Module):
 
     def __init__(self, nb_out):
         super().__init__()
-        self.sliceLSTM1 = custom.SliceLSTM([(12, 1), (13, 1)])
-        # self.DropOut1 = nn.Dropout(p=0.1)
-        # self.sliceLSTM2 = custom.SliceLSTM([(20, 10), (20, 10)])
+
+        # first lstm_layer
+        slices_1 = [(8, 3), (9, 4), (8, 3)]
+        last_hidden_units = sum(item[1] for item in slices_1)
+        self.sliceLSTM1 = custom.SliceLSTM(slices_1)
+        self.DropOut1 = nn.Dropout(p=0.2)
+
+        # second lstm_layer
+        # slices_2 = [(20, 10), (20, 10)]
+        # last_hidden_units = sum(item[1] for item in slices_2)
+        # self.sliceLSTM2 = custom.SliceLSTM(slices_2)
         # self.DropOut2 = nn.Dropout(p=0.2)
-        self.out = Linear(2, nb_out)
+
+        # output layer
+        self.out = Linear(last_hidden_units, nb_out)
         self.out_activation = torch.nn.Sigmoid()
 
     def forward(self, x):
         x, _ = self.sliceLSTM1(x)
         # x = self.DropOut1(x)
+
         # x, _ = self.sliceLSTM2(x)
         x = x[:, -1, :]  # only take last hidden state (equals "return_sequence = False")
         # x = self.DropOut2(x)
