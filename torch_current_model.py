@@ -16,10 +16,11 @@ class SliceModel(nn.Module):
         super().__init__()
 
         # first lstm_layer
-        slices_1 = [(8, 3), (9, 4), (8, 3)]
+        slices_1 = [(10, 1), (15, 1)]
         last_hidden_units = sum(item[1] for item in slices_1)
         self.sliceLSTM1 = custom.SliceLSTM(slices_1)
-        self.DropOut1 = nn.Dropout(p=0.2)
+        # TODO: check whether dropout is in forward!
+        # self.DropOut1 = nn.Dropout(p=0.2)
 
         # second lstm_layer
         # slices_2 = [(20, 10), (20, 10)]
@@ -41,7 +42,6 @@ class SliceModel(nn.Module):
         x = self.out(x)
         x = self.out_activation(x)
         return x
-
 
 
 class ReferenceCustomModel(nn.Module):
