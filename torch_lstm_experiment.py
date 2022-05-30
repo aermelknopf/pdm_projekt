@@ -350,7 +350,7 @@ if __name__ == '__main__':
 
     # manually configure dir to reflect model type and architecture
     model_type = "sliced-model"
-    architecture_string = "(10-1_15-2)_drop15"
+    architecture_string = "(12-1_13-1)"
     logdir = f"results/{model_type}/{architecture_string}"
     os.makedirs(logdir, exist_ok=True)
 
