@@ -361,10 +361,11 @@ def get_max_valacc_run(dfs : dict, peak_acc_count=5):
 if __name__ == '__main__':
     # dfs = read_files("results")
     # line_plot(dfs, column="val_acc", show=True, legend=True, xlabel="epoch", ylabel="validation accuracy")
-    plot_lr_comparison("results/reference-model", aggregate="median", show=False, save=True)
-
-    # plot_run_comparison("results/reference-model", aggregate="mean", save=True, show=False)
 
     # plot_lr_comparison("results/sliced-model", aggregate="median", show=False, save=True)
 
-    # plot_runtime_valacc_comparison()
+    # plot_run_comparison("results/sliced-model", aggregate="mean", show=False, save=True)
+
+    # plot_lr_comparison("results/sliced-model", aggregate="median", show=False, save=True)
+
+    plot_runtime_valacc_comparison()
