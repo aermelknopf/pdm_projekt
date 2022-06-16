@@ -153,7 +153,7 @@ def plot_run_comparison(root_dir: str, learning_rates=(0.001, 0.005, 0.01, 0.02)
                 data = read_files(cur_dir, selected=selector)
 
                 if bool(data):
-                    title = f"{item}  lr={lr}"
+                    title = f"Run Comparison  Model: [{item}]  lr={lr}"
                     legend = lambda s: "run " + s[-1]
 
                     if save:
@@ -221,7 +221,7 @@ def plot_lr_comparison(root_dir: str, aggregate="mean", learning_rates=(0.001, 0
                 aggregated_data[str(lr)] = aggregate_df_dict(data, aggregate=aggregate)
 
             if bool(aggregated_data):
-                title = f"{item}    {aggregate} of different learning rates"
+                title = f"LR Comparison  Model: [{item}]  Aggregation: {aggregate}"
                 legend = lambda s: f"lr={s}"  # no augmentation should not be necessary
 
                 if save:
@@ -338,7 +338,7 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
     aggregate_name = naming(aggregate_name)
     filter_str = naming(filter_str)
 
-    title_string = f"{accuracy_column} / {time_column}, aggregated using: {aggregate_name}"
+    title_string = f"{accuracy_column} / {time_column}, aggregation: {aggregate_name}"
     filename = f"{aggregate_name}-{accuracy_column}-{time_column}-{filter_str}.png"
 
     plt.plot(sliced_x, sliced_y, sliced_color, label='sliced-model')
@@ -346,8 +346,8 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
 
     # part to create a number for every point and store in .txt-file
     if point_legend:
-        legend_x_offset = -0.04
-        legend_y_offset = -0.04
+        legend_x_offset = 0.02
+        legend_y_offset = -0.03
 
         pt_legend_list = []
         for index, point_label in enumerate(sliced_labels):
@@ -405,15 +405,17 @@ if __name__ == '__main__':
     # dfs = read_files("results")
     # line_plot(dfs, column="val_acc", show=True, legend=True, xlabel="epoch", ylabel="validation accuracy")
 
-    # plot_lr_comparison("results/sliced-model", aggregate="median", show=False, save=True)
+    # plot_lr_comparison("results/reference-model", aggregate="mean", show=False, save=True)
+    # plot_lr_comparison("results/sliced-model", aggregate="mean", show=False, save=True)
 
-    # plot_run_comparison("results/sliced-model", aggregate="mean", show=False, save=True)
+    plot_run_comparison("results/reference-model", aggregate="median", show=False, save=True)
+    plot_run_comparison("results/sliced-model", aggregate="median", show=False, save=True)
 
-    # plot_lr_comparison("results/sliced-model", aggregate="median", show=False, save=True)
 
-    name_dict = {'fwd_time': 'fwd path time', 'bwd_time': 'bwd path time', 'time': 'total time',
+
+    name_dict = {'fwd_time': 'epoch forward time', 'bwd_time': 'epoch backward time', 'time': 'total epoch time',
                  'val_acc': 'peak val acc', 'max': 'peak val acc'}
 
-    fancy_naming = lambda n: name_dict[n] if n in name_dict else n
+    # fancy_naming = lambda n: name_dict[n] if n in name_dict else n
 
-    plot_runtime_valacc_comparison(point_legend=True, naming=fancy_naming, savedir="graphs/2d comparisons")
+    # plot_runtime_valacc_comparison(point_legend=True, naming=fancy_naming, savedir="graphs/2d comparisons")
