@@ -296,10 +296,23 @@ def calc_peak_acc(df, peak_acc_count, accuracy_column):
     data = np.sort(data)
     data = data[::-1]
     return data[peak_acc_count-1]
-    pass
 
 
-def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='val_acc', peak_count=5, savedir=None, filter=None, filter_str=''):
+def convert_dict_to_labeled_xy_list(dict):
+    xs = []
+    ys = []
+    keys = []
+
+    for key, (x, y) in dict.items():
+        xs.append(x)
+        ys.append(y)
+        keys.append(key)
+
+    return xs, ys, keys
+
+
+
+def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='val_acc', peak_count=5, savedir=None, filter=None, filter_str='', point_legend=False, naming=lambda x: x):
     sliced_data, reference_data = read_all_data(aggregate=aggregate)
     sliced_data = take_best_lrs(sliced_data, accuracy_column=accuracy_column, peak_acc_count=peak_count)
     reference_data = take_best_lrs(reference_data, accuracy_column=accuracy_column, peak_acc_count=peak_count)
@@ -307,27 +320,57 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
     sliced_data = {key: (df[time_column].median(), 100 * calc_peak_acc(df, peak_count, accuracy_column)) for (key, df) in sliced_data.items()}
     reference_data = {key: (df[time_column].median(), 100 * calc_peak_acc(df, peak_count, accuracy_column)) for (key, df) in reference_data.items()}
 
-    # filter
-    sliced_data = {key: value for key, value in sliced_data.items() if filter(value)}
-    reference_data = {key: value for key, value in reference_data.items() if filter(value)}
+    # filter data
+    if filter is not None:
+        sliced_data = {key: value for key, value in sliced_data.items() if filter(value)}
+        reference_data = {key: value for key, value in reference_data.items() if filter(value)}
 
-    sliced_x = [value[0] for value in sliced_data.values()]
-    sliced_y = [value[1] for value in sliced_data.values()]
-    sliced_color = 'bo'
+    sliced_x, sliced_y, sliced_labels = convert_dict_to_labeled_xy_list(sliced_data)
+    sliced_color = 'co'
 
-    reference_x = [value[0] for value in reference_data.values()]
-    reference_y = [value[1] for value in reference_data.values()]
-    reference_color = 'ro'
+    reference_x, reference_y, reference_labels = convert_dict_to_labeled_xy_list(reference_data)
+    reference_color = 'mo'
 
     aggregate_name = aggregate if type(aggregate) is str else "max"
-    title_string = f"{accuracy_column} and {time_column} {aggregate_name} of different models"
+
+    accuracy_column = naming(accuracy_column)
+    time_column = naming(time_column)
+    aggregate_name = naming(aggregate_name)
+    filter_str = naming(filter_str)
+
+    title_string = f"{accuracy_column} / {time_column}, aggregated using: {aggregate_name}"
     filename = f"{aggregate_name}-{accuracy_column}-{time_column}-{filter_str}.png"
 
     plt.plot(sliced_x, sliced_y, sliced_color, label='sliced-model')
     plt.plot(reference_x, reference_y, reference_color, label='reference-model')
+
+    # part to create a number for every point and store in .txt-file
+    if point_legend:
+        legend_x_offset = -0.04
+        legend_y_offset = -0.04
+
+        pt_legend_list = []
+        for index, point_label in enumerate(sliced_labels):
+            point_number = index + 1
+            plt.annotate(point_number, (sliced_x[index] + legend_x_offset, sliced_y[index] + legend_y_offset), size=7)
+            pt_legend_list.append(f"{point_number}: {sliced_labels[index]}\n")
+
+        offset = len(sliced_x)
+        for index, point_label in enumerate(reference_labels):
+            point_number = index + offset + 1
+            plt.annotate(point_number, (reference_x[index] + legend_x_offset, reference_y[index] + legend_y_offset), size=7)
+            pt_legend_list.append(f"{point_number}: {reference_labels[index]}\n")
+
+        point_legend_filename = f"{aggregate_name}-{accuracy_column}-{time_column}-{filter_str}-point_legend.txt"
+        if savedir is not None:
+            pt_legend_file = os.path.join(savedir, point_legend_filename)
+            with open(pt_legend_file, 'w') as file:
+                file.writelines(pt_legend_list)
+
     plt.legend()
     plt.xlabel(f"epoch {time_column} [s]")
-    plt.ylabel(f"{accuracy_column} [%]")
+    # plt.ylabel(f"{accuracy_column} [%]")
+    plt.ylabel(f"peak validation accuracy [%]")
     plt.title(title_string)
 
     if savedir is None:
@@ -337,18 +380,17 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
 
     plt.clf()
 
-
-def plot_runtime_valacc_comparison():
+def plot_runtime_valacc_comparison(savedir=None, point_legend=False, naming=None):
     aggregates = ['mean', 'median', get_max_valacc_run]
     times = ['time', 'fwd_time', 'bwd_time']
 
     for aggregate in aggregates:
         for time in times:
-            plot_2d_comparison(aggregate=aggregate, time_column=time, savedir='graphs/2d comparisons',
-                               filter=lambda val: val[0] < 14, filter_str='max14s')
+            plot_2d_comparison(aggregate=aggregate, time_column=time, savedir=savedir, point_legend=point_legend,
+                               filter=lambda val: val[0] < 14, filter_str='max14s', naming=naming)
 
 
-def get_max_valacc_run(dfs : dict, peak_acc_count=5):
+def get_max_valacc_run(dfs: dict, peak_acc_count=5):
     run_list = [(key, calc_peak_acc(df, peak_acc_count=peak_acc_count, accuracy_column='val_acc')) for (key, df) in dfs.items()]
     sort_key = lambda i: i[1]
     run_list.sort(key=sort_key, reverse=True)
@@ -368,4 +410,9 @@ if __name__ == '__main__':
 
     # plot_lr_comparison("results/sliced-model", aggregate="median", show=False, save=True)
 
-    plot_runtime_valacc_comparison()
+    name_dict = {'fwd_time': 'fwd path time', 'bwd_time': 'bwd path time', 'time': 'total time',
+                 'val_acc': 'peak val acc', 'max': 'peak val acc'}
+
+    fancy_naming = lambda n: name_dict[n] if n in name_dict else n
+
+    plot_runtime_valacc_comparison(point_legend=True, naming=fancy_naming, savedir="graphs/2d comparisons")
