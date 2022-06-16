@@ -353,15 +353,16 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
         for index, point_label in enumerate(sliced_labels):
             point_number = index + 1
             plt.annotate(point_number, (sliced_x[index] + legend_x_offset, sliced_y[index] + legend_y_offset), size=7)
-            pt_legend_list.append(f"{point_number}: {sliced_labels[index]}\n")
+            pt_legend_list.append(f"{point_number}: SlicedLSTM - {sliced_labels[index]}\n")
 
         offset = len(sliced_x)
         for index, point_label in enumerate(reference_labels):
             point_number = index + offset + 1
             plt.annotate(point_number, (reference_x[index] + legend_x_offset, reference_y[index] + legend_y_offset), size=7)
-            pt_legend_list.append(f"{point_number}: {reference_labels[index]}\n")
+            pt_legend_list.append(f"{point_number}: Standard LSTM - {reference_labels[index]}\n")
 
         point_legend_filename = f"{aggregate_name}-{accuracy_column}-{time_column}-{filter_str}-point_legend.txt"
+        # write pt_legend file
         if savedir is not None:
             pt_legend_file = os.path.join(savedir, point_legend_filename)
             with open(pt_legend_file, 'w') as file:
