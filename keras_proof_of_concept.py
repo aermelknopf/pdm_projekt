@@ -156,7 +156,7 @@ if __name__ == '__main__':
 
     # Label1 indicates a failure will occur within the next 30 cycles.
     # 1 indicates failure, 0 indicates healthy
-    train_df['label1'] = np.where(train_df['RUL'] <= w1, 1, 0 )
+    train_df['label1'] = np.where(train_df['RUL'] <= w1, 1, 0)
 
     # label2 is multiclass, value 1 is identical to label1,
     # value 2 indicates failure within 15 cycles
@@ -167,13 +167,13 @@ if __name__ == '__main__':
     # STEP 3: DATA NORMALIZATION (values between [0.0,1.0])
     # MinMax normalization - train data
     train_df['cycle_norm'] = train_df['cycle']
-    cols_normalize = train_df.columns.difference(['id','cycle','RUL','label1','label2'])
+    cols_normalize = train_df.columns.difference(['id', 'cycle', 'RUL', 'label1', 'label2'])
     min_max_scaler = MinMaxScaler()
     norm_train_df = pd.DataFrame(min_max_scaler.fit_transform(train_df[cols_normalize]),
                                  columns=cols_normalize,
                                  index=train_df.index)
     join_df = train_df[train_df.columns.difference(cols_normalize)].join(norm_train_df)
-    train_df = join_df.reindex(columns = train_df.columns)
+    train_df = join_df.reindex(columns=train_df.columns)
 
     # MinMax normalization - test data
     test_df['cycle_norm'] = test_df['cycle']
@@ -181,7 +181,7 @@ if __name__ == '__main__':
                                 columns=cols_normalize,
                                 index=test_df.index)
     test_join_df = test_df[test_df.columns.difference(cols_normalize)].join(norm_test_df)
-    test_df = test_join_df.reindex(columns = test_df.columns)
+    test_df = test_join_df.reindex(columns=test_df.columns)
     test_df = test_df.reset_index(drop=True)
 
 
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     test_df.drop('max', axis=1, inplace=True)
 
     # generate label columns w0 and w1 for test data
-    test_df['label1'] = np.where(test_df['RUL'] <= w1, 1, 0 )
+    test_df['label1'] = np.where(test_df['RUL'] <= w1, 1, 0)
     test_df['label2'] = test_df['label1']
     test_df.loc[test_df['RUL'] <= w0, 'label2'] = 2
 
@@ -224,7 +224,7 @@ if __name__ == '__main__':
     sequence_cols.extend(sensor_cols)
 
     # generator for the sequences
-    seq_gen = (list(gen_sequence(train_df[train_df['id']==id], sequence_length, sequence_cols))
+    seq_gen = (list(gen_sequence(train_df[train_df['id'] == id], sequence_length, sequence_cols))
                for id in train_df['id'].unique())
 
     # generate sequences and convert to numpy array
