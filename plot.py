@@ -353,13 +353,13 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
         for index, point_label in enumerate(sliced_labels):
             point_number = index + 1
             plt.annotate(point_number, (sliced_x[index] + legend_x_offset, sliced_y[index] + legend_y_offset), size=7)
-            pt_legend_list.append(f"{point_number}: SlicedLSTM - {sliced_labels[index]}\n")
+            pt_legend_list.append(f"{point_number}: SlicedLSTM - {sliced_labels[index]} - val_acc: {sliced_y[index]:.2f}%,  {time_column}:  {sliced_x[index]:.3f}s\n")
 
         offset = len(sliced_x)
         for index, point_label in enumerate(reference_labels):
             point_number = index + offset + 1
             plt.annotate(point_number, (reference_x[index] + legend_x_offset, reference_y[index] + legend_y_offset), size=7)
-            pt_legend_list.append(f"{point_number}: Standard LSTM - {reference_labels[index]}\n")
+            pt_legend_list.append(f"{point_number}: Standard LSTM - {reference_labels[index]} - val_acc: {reference_y[index]:.2f}%,  {time_column}:  {reference_x[index]:.3f}s\n")
 
         point_legend_filename = f"{aggregate_name}-{accuracy_column}-{time_column}-{filter_str}-point_legend.txt"
         # write pt_legend file
@@ -408,14 +408,14 @@ if __name__ == '__main__':
     # plot_lr_comparison("results/reference-model", aggregate="mean", show=False, save=True)
     # plot_lr_comparison("results/sliced-model", aggregate="mean", show=False, save=True)
 
-    plot_run_comparison("results/reference-model", aggregate="median", show=False, save=True)
-    plot_run_comparison("results/sliced-model", aggregate="median", show=False, save=True)
+    # plot_run_comparison("results/reference-model", aggregate="median", show=False, save=True)
+    # plot_run_comparison("results/sliced-model", aggregate="median", show=False, save=True)
 
 
 
     name_dict = {'fwd_time': 'epoch forward time', 'bwd_time': 'epoch backward time', 'time': 'total epoch time',
                  'val_acc': 'peak val acc', 'max': 'peak val acc'}
 
-    # fancy_naming = lambda n: name_dict[n] if n in name_dict else n
+    fancy_naming = lambda n: name_dict[n] if n in name_dict else n
 
-    # plot_runtime_valacc_comparison(point_legend=True, naming=fancy_naming, savedir="graphs/2d comparisons")
+    plot_runtime_valacc_comparison(point_legend=True, naming=fancy_naming, savedir="graphs/2d comparisons")

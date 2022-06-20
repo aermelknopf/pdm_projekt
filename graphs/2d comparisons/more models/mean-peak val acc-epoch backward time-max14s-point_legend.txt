@@ -1,0 +1,13 @@
+1: SlicedLSTM - (10-1_15-1) lr: 0.01 - val_acc: 94.53%,  epoch backward time:  2.652s
+2: SlicedLSTM - (10-1_15-1)_drop10 lr: 0.01 - val_acc: 94.73%,  epoch backward time:  2.616s
+3: SlicedLSTM - (10-1_15-2)_drop10 lr: 0.02 - val_acc: 95.50%,  epoch backward time:  3.186s
+4: SlicedLSTM - (10-1_15-2)_drop15 lr: 0.01 - val_acc: 94.90%,  epoch backward time:  3.207s
+5: SlicedLSTM - (10-1_15-2)_drop20 lr: 0.01 - val_acc: 94.56%,  epoch backward time:  3.169s
+6: SlicedLSTM - (10-1_15-3)_drop20 lr: 0.005 - val_acc: 95.56%,  epoch backward time:  3.438s
+7: SlicedLSTM - (10-2_15-3)_drop20 lr: 0.01 - val_acc: 95.76%,  epoch backward time:  3.906s
+8: SlicedLSTM - (11-1_14-1) lr: 0.02 - val_acc: 94.56%,  epoch backward time:  2.649s
+9: SlicedLSTM - (12-1_13-1) lr: 0.02 - val_acc: 93.92%,  epoch backward time:  2.528s
+10: Standard LSTM - 25-5_drop10_5-2_drop10 lr: 0.01 - val_acc: 95.86%,  epoch backward time:  2.917s
+11: Standard LSTM - 25-5_drop20_5-2_drop20 lr: 0.01 - val_acc: 94.89%,  epoch backward time:  2.951s
+12: Standard LSTM - 25-6_drop20_6-3_drop20 lr: 0.005 - val_acc: 96.71%,  epoch backward time:  3.284s
+13: Standard LSTM - 25-8_drop20_8-4_drop20 lr: 0.01 - val_acc: 96.31%,  epoch backward time:  4.138s
