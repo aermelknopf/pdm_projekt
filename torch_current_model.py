@@ -9,16 +9,16 @@ import torch_custom_lstm as custom
 import custom_lstm_example as reference
 
 
-class SliceModel(nn.Module):
+class SlicedModel(nn.Module):
     """ Current version of the SlicedModel tested in torch_lstm_experiment.py """
 
     def __init__(self, nb_out):
         super().__init__()
 
         # first lstm_layer
-        slices_1 = [(8, 3), (9, 4), (8, 3)]
+        slices_1 = [(12, 4), (13, 4)]
         last_hidden_units = sum(item[1] for item in slices_1)
-        self.sliceLSTM1 = custom.SliceLSTM(slices_1)
+        self.sliceLSTM1 = custom.SlicedLSTM(slices_1)
         # TODO: check whether dropout is in forward!
         self.DropOut1 = nn.Dropout(p=0.20)
 

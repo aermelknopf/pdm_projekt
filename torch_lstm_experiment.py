@@ -350,7 +350,7 @@ if __name__ == '__main__':
 
     # manually configure dir to reflect model type and architecture
     model_type = "sliced-model"
-    architecture_string = "(8-3_9-4_8-3)_drop20"
+    architecture_string = "(12-4_13-4)_drop20"
     logdir = f"results/{model_type}/{architecture_string}"
     os.makedirs(logdir, exist_ok=True)
 
@@ -361,7 +361,7 @@ if __name__ == '__main__':
             if model_type == "reference-model":
                 model = current_model.ReferenceCustomModel(nb_out)
             elif model_type == "sliced-model":
-                model = current_model.SliceModel(nb_out)
+                model = current_model.SlicedModel(nb_out)
             else:
                 ValueError("Wrong model_type! Must be 'reference-model' or 'sliced-model'")
 

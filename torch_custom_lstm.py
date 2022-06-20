@@ -8,9 +8,9 @@ import torch
 import torch.nn as nn
 
 
-class SliceLSTM(nn.Module):
+class SlicedLSTM(nn.Module):
     """ Experimental new version of an LSTM layer, in which data slices of the input are processed by 'slices'
-        of the typical LSTM gates (input gate i, forward gate f, g, output gate o) and TODO: complete """
+        of the typical LSTM gates (input gate i/g, forward gate f, output gate o) and  """
 
     def __init__(self, lstm_slices: list[tuple]):
         super().__init__()
