@@ -10,7 +10,8 @@ import torch.nn as nn
 
 class SlicedLSTM(nn.Module):
     """ Experimental new version of an LSTM layer, in which data slices of the input are processed by 'slices'
-        of the typical LSTM gates (input gate i/g, forward gate f, output gate o) and  """
+        of the typical LSTM gates (input gate i/g, forward gate f, output gate o) and afterwards connected by a dense
+         ConnectorLayer  """
 
     def __init__(self, lstm_slices: list[tuple]):
         super().__init__()
