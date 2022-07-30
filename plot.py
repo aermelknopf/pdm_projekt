@@ -359,7 +359,7 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
     plt.legend()
     plt.xlabel(f"epoch {time_column} [s]")
     # plt.ylabel(f"{accuracy_column} [%]")
-    plt.ylabel(f"peak validation accuracy [%]")
+    plt.ylabel(f"k-best validation accuracy [%]")
     plt.title(title_string)
 
     if savedir is None:
@@ -475,11 +475,9 @@ if __name__ == '__main__':
 
 
 
-    # name_dict = {'fwd_time': 'epoch forward time', 'bwd_time': 'epoch backward time', 'time': 'total epoch time',
-    #             'val_acc': 'peak val acc', 'max': 'peak val acc'}
+    name_dict = {'fwd_time': 'epoch forward time', 'bwd_time': 'epoch backward time', 'time': 'total epoch time',
+                 'val_acc': 'k-best val acc', 'max': 'k-best val acc'}
+    fancy_naming = lambda n: name_dict[n] if n in name_dict else n
+    plot_runtime_valacc_comparison(point_legend=True, naming=fancy_naming, savedir="graphs/2d comparisons/new")
 
-    # fancy_naming = lambda n: name_dict[n] if n in name_dict else n
-
-    # plot_runtime_valacc_comparison(point_legend=True, naming=fancy_naming, savedir="graphs/2d comparisons")
-
-    plot_epoch_time_distribution(savedir="graphs/epoch time distributions", show=False)
+    # plot_epoch_time_distribution(savedir="graphs/epoch time distributions", show=False)
