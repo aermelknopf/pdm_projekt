@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import os
 import pandas
 import numpy as np
+import pandas as pd
 
 
 def read_files(dir, selected=None, round_decimals=None, root_dir=None):
@@ -128,16 +129,6 @@ def get_title_string(model_string: str):
         model_architecture.append(layer_string)
 
 
-def parse_sliced_layer(model_string: str):
-    # TODO: complete?
-    pass
-
-
-def parse_dropout_layer(model_string: str):
-    # TODO: complete?
-    pass
-
-
 def plot_run_comparison(root_dir: str, learning_rates=(0.001, 0.005, 0.01, 0.02), aggregate=None, save=False,
                         show=True):
     model_type = root_dir.partition("/")[2]
@@ -160,8 +151,8 @@ def plot_run_comparison(root_dir: str, learning_rates=(0.001, 0.005, 0.01, 0.02)
                         os.makedirs(cur_save_dir, exist_ok=True)
                         filename = f"lr-{get_lr_string(lr)}"
                         if aggregate is not None:
-                            filename += (f"-{aggregate}")
-                        filename += (".png")
+                            filename += f"-{aggregate}"
+                        filename += ".png"
                         save_path = os.path.join(cur_save_dir, filename)
                     else:
                         save_path = None
@@ -183,22 +174,23 @@ def get_lr_filter(lr):
     return lambda s: lr_file_string in s
 
 
-def aggregate_df_dict(dfs: dict, aggregate="mean"):
+def aggregate_df_dict(dfs: dict[str, pd.DataFrame], aggregate="mean"):
     if not dfs:
         ValueError("no dfs in dict to aggregate in aggregate_df_dict")
 
-    df_list = [i for i in dfs.values()]
-    concated = pandas.concat(df_list)
-    grouped = concated.groupby(level=0)
-
-    if aggregate == "mean":
-        aggregated = grouped.mean()
-    elif aggregate == "median":
-        aggregated = grouped.median()
-    elif callable(aggregate):
+    if callable(aggregate):
         aggregated = aggregate(dfs)
     else:
-        ValueError("aggregate must be 'mean', 'median' or callable")
+        df_list = [i for i in dfs.values()]
+        concated = pandas.concat(df_list)
+        grouped = concated.groupby(level=0)
+
+        if aggregate == "mean":
+            aggregated = grouped.mean()
+        elif aggregate == "median":
+            aggregated = grouped.median()
+        else:
+            ValueError("aggregate must be 'mean', 'median' or callable")
     return aggregated
 
 
@@ -236,11 +228,8 @@ def plot_lr_comparison(root_dir: str, aggregate="mean", learning_rates=(0.001, 0
                           savepath=save_path)
 
 
-def read_all_data(aggregate=None):
-    learning_rates = [0.001, 0.005, 0.01, 0.02]
-    root_dir = 'results'
-    dir_filter = ('reference-model', 'sliced-model')
-
+def read_all_data(root_dir="results", dir_filter=('reference-model', 'sliced-model'),
+                  learning_rates=(0.001, 0.005, 0.01, 0.02), aggregate=None):
     grouped_data = {}
 
     for model_type in os.listdir(root_dir):
@@ -250,21 +239,21 @@ def read_all_data(aggregate=None):
 
             type_data = {}
 
-            for architecture in os.listdir(type_dir):
-                architecture_dir = os.path.join(type_dir, architecture)
+            for layerconfig in os.listdir(type_dir):
+                layerconfig_dir = os.path.join(type_dir, layerconfig)
 
-                architecture_data = {}
+                layerconfig_data = {}
 
                 for lr in learning_rates:
                     selector = get_lr_filter(lr)
-                    lr_data = read_files(architecture_dir, selected=selector)
+                    lr_data = read_files(layerconfig_dir, selected=selector)
 
                     if aggregate is not None:
                         lr_data = aggregate_df_dict(lr_data, aggregate=aggregate)
 
-                    architecture_data[lr] = lr_data
+                    layerconfig_data[lr] = lr_data
 
-                type_data[architecture] = architecture_data
+                type_data[layerconfig] = layerconfig_data
 
             grouped_data[model_type] = type_data
 
@@ -273,10 +262,10 @@ def read_all_data(aggregate=None):
 
 # Takes dict of dicts of dataframes and returns dict of dataframes containing
 # the data of the best learning rate for each architecture
-def take_best_lrs(dict_of_dict_of_dfs, accuracy_column='val_acc', peak_acc_count=5):
+def take_best_lrs(data: dict[str, dict[str, pd.DataFrame]], accuracy_column='val_acc', peak_acc_count=5):
     best_lrs = {}
 
-    for architecture, architecture_data in dict_of_dict_of_dfs.items():
+    for architecture, architecture_data in data.items():
         best_peak_acc = -1
 
         for lr, lr_data in architecture_data.items():
@@ -309,7 +298,6 @@ def convert_dict_to_labeled_xy_list(dict):
         keys.append(key)
 
     return xs, ys, keys
-
 
 
 def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='val_acc', peak_count=5, savedir=None, filter=None, filter_str='', point_legend=False, naming=lambda x: x):
@@ -381,6 +369,7 @@ def plot_2d_comparison(aggregate='median', time_column='time', accuracy_column='
 
     plt.clf()
 
+
 def plot_runtime_valacc_comparison(savedir=None, point_legend=False, naming=None):
     aggregates = ['mean', 'median', get_max_valacc_run]
     times = ['time', 'fwd_time', 'bwd_time']
@@ -400,6 +389,79 @@ def get_max_valacc_run(dfs: dict, peak_acc_count=5):
     return dfs[best_df]
 
 
+def accumulate_columns(data: [dict[str, pd.DataFrame]], columns: list[str]):
+    df_list = [item for item in data.values()]
+    concated = pandas.concat(df_list, ignore_index=True)
+    return concated[columns]
+
+
+def box_plot(data: list[list], xlabel=None, ylabel=None, title=None, plot_labels=None, show=False, savepath=None):
+    fig, ax = plt.subplots()
+
+    ax.boxplot(data)
+
+    if plot_labels is not None:
+        ax.set_xticklabels(plot_labels)
+
+    if title is not None:
+        plt.title(title)
+
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+
+    if ylabel is not None:
+        plt.ylabel(ylabel)
+
+    # needs to happen before plt.show() else only white image will be plotted
+    if savepath is not None:
+        plt.savefig(savepath)
+
+    if show:
+        plt.show()
+
+    # figure needs to be cleared!
+    plt.clf()
+
+
+def layerconfig_boxplots(data: dict[str, dict[str, pd.DataFrame]], columns=("time", "fwd_time", "bwd_time"),
+                            xlabel=None, ylabels=None, column_names=None, show=False, savedir=None):
+
+    plot_data = {key: accumulate_columns(item, columns=columns) for key, item in data.items()}
+
+    for layerconfig, layerconfig_data in plot_data.items():
+
+        plot_data = [list(layerconfig_data[column].values) for column in columns]
+        plot_title = f"epoch time distribution   model: {layerconfig}"
+
+        # potentially change name of legend (default: column name)
+        if column_names == "default":
+            column_names = columns
+
+        if savedir is not None:
+            savepath = f"{savedir}/{layerconfig}.png"
+        else:
+            savepath = None
+
+        box_plot(plot_data, xlabel=xlabel, ylabel=ylabels, title=plot_title, plot_labels=column_names,
+                 show=show, savepath=savepath)
+
+
+def plot_epoch_time_distribution(show=True, savedir=None):
+
+    columns = ["fwd_time", "bwd_time"]
+    aggregate = lambda x: accumulate_columns(x, columns)
+
+    sliced_dfs, reference_dfs = read_all_data(aggregate=aggregate)
+
+    if savedir is not None:
+        os.makedirs(savedir, exist_ok=True)
+
+    layerconfig_boxplots(sliced_dfs, columns=columns, column_names=["forward path", "backward path"],
+                         ylabels="epoch time [s]", show=show, savedir=savedir)
+
+    layerconfig_boxplots(reference_dfs, columns=columns, column_names=["forward path", "backward path"],
+                         ylabels="epoch time [s]", show=show, savedir=savedir)
+
 
 if __name__ == '__main__':
     # dfs = read_files("results")
@@ -413,9 +475,11 @@ if __name__ == '__main__':
 
 
 
-    name_dict = {'fwd_time': 'epoch forward time', 'bwd_time': 'epoch backward time', 'time': 'total epoch time',
-                 'val_acc': 'peak val acc', 'max': 'peak val acc'}
+    # name_dict = {'fwd_time': 'epoch forward time', 'bwd_time': 'epoch backward time', 'time': 'total epoch time',
+    #             'val_acc': 'peak val acc', 'max': 'peak val acc'}
 
-    fancy_naming = lambda n: name_dict[n] if n in name_dict else n
+    # fancy_naming = lambda n: name_dict[n] if n in name_dict else n
 
-    plot_runtime_valacc_comparison(point_legend=True, naming=fancy_naming, savedir="graphs/2d comparisons")
+    # plot_runtime_valacc_comparison(point_legend=True, naming=fancy_naming, savedir="graphs/2d comparisons")
+
+    plot_epoch_time_distribution(savedir="graphs/epoch time distributions", show=False)
