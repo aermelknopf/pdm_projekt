@@ -19,16 +19,19 @@ class SlicedModel(nn.Module):
         slices_1 = [(12, 4), (13, 4)]
         last_hidden_units = sum(item[1] for item in slices_1)
         self.sliceLSTM1 = custom.SlicedLSTM(slices_1)
-        # TODO: check whether dropout is in forward!
+
+        # check whether dropout is in forward!
         self.DropOut1 = nn.Dropout(p=0.20)
 
         # second lstm_layer
-        # slices_2 = [(20, 10), (20, 10)]
+        # !!!WICHTIG!!! total input size (also summe aller inputs aller sliced) muss gleich sein wie total_hidden_size
+        # vom vorherigen layer (also summe aller hidden_sizes des vorherigen layers !!!
+        # slices_2 = [(4, 2), (4, 2)]
         # last_hidden_units = sum(item[1] for item in slices_2)
         # self.sliceLSTM2 = custom.SliceLSTM(slices_2)
         # self.DropOut2 = nn.Dropout(p=0.2)
 
-        # output layer
+        # output layer (nicht verändern!)
         self.out = Linear(last_hidden_units, nb_out)
         self.out_activation = torch.nn.Sigmoid()
 
@@ -40,6 +43,8 @@ class SlicedModel(nn.Module):
         # x, _ = self.sliceLSTM2(x)
         # x = x[:, -1, :]  # only take last hidden state (equals "return_sequence = False")
         # x = self.DropOut2(x)
+
+        # output-layer (nicht verändern!)
         x = self.out(x)
         x = self.out_activation(x)
         return x
@@ -50,10 +55,20 @@ class ReferenceCustomModel(nn.Module):
 
     def __init__(self, nb_out):
         super().__init__()
-        self.LSTM1 = reference.CustomLSTM(25, 5)
+        input_size= 25
+        hidden_size = 5
+        self.LSTM1 = reference.CustomLSTM(input_size, hidden_size)
+        last_lstm_layer_output_size = hidden_size
+
         self.DropOut1 = nn.Dropout(p=0.1)
-        # self.LSTM2 = reference.CustomLSTM(5, 2)
+
+
+        # input_size = last_lstm_layer_output_size
+        # hidden_size = 2
+        # self.LSTM2 = reference.CustomLSTM(input_size, hidden_size)
         # self.DropOut2 = nn.Dropout(p=0.1)
+
+        # output-Layer (nicht verändern)
         self.out = Linear(5, nb_out)
         self.out_activation = torch.nn.Sigmoid()
 
@@ -64,11 +79,11 @@ class ReferenceCustomModel(nn.Module):
         # x, _ = self.LSTM2(x)
         x = x[:, -1, :]  # only take last output -> "return_sequence = False"
         # x = self.DropOut2(x)
-        # print(f"lstm_output: {x.shape}")
+
+        # output-layer (nicht verändern)
         x = self.out(x)
-        # print(f"linear output: {x.shape}")
         x = self.out_activation(x)
-        # print(f"output: {x.shape}")
+
         return x
 
 
